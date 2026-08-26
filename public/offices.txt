@@ -1,0 +1,87 @@
+# Smith & Sons franchisee offices — one per line.
+# Edit this file only; every award page reads it at runtime.
+# Blank lines and lines starting with "#" are ignored.
+Albany
+Ashburton
+Ashgrove
+Auckland Central
+Avoca Beach
+Ballarat
+Bargara & Coral Coast
+Belrose - Warringah
+Bentleigh
+Birkenhead
+Blenheim
+Bowen Hills
+Brisbane City
+Bundaberg Central
+Cairns
+Cairns North
+Caloundra
+Capalaba
+Carindale
+Castle Hill
+Christchurch Port Hills
+Christchurch West
+Coldstream
+Doncaster
+Dunedin
+Eltham
+Five Dock
+Franklin
+Geelong
+Gold Coast Central & South
+Gold Coast North
+Gold Coast South
+Greensborough
+Gympie
+Hamilton
+Hauraki
+Hervey Bay & Fraser Coast
+Hibiscus Coast
+Hornsby
+Hutt Valley
+Illawarra North
+Invercargill
+Kiama
+Logan
+Manawatu
+Mandurah / Rockingham
+Manly
+Marlborough
+Mitcham
+Mona Vale-Pittwater
+Moonee Ponds
+Mornington Peninsula
+Mosman
+Mount Maunganui / Papamoa
+Nelson
+North Beach
+North West Adelaide
+Oatley
+Perth - Como
+Perth South Metro
+Queenstown
+Randwick
+Rotorua
+Ryde
+Sandgate
+Shepparton
+Shoalhaven South Coast
+South Waikato
+South West
+Sunshine Coast Central
+Sunshine Coast North
+Surf Coast
+Sutherland Shire
+Taranaki
+Tauranga
+Terrigal
+Toowoomba East
+Tuggeranong ACT
+Turramurra
+Warrnambool
+Whanganui
+Whangarei
+Wollongong
+Wyong
