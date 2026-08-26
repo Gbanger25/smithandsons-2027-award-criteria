@@ -247,20 +247,20 @@ export function AwardPage({
           {theme.snow ? <Snowfall count={theme.snow.apply} seed={29} /> : null}
 
           <div className="relative mx-auto w-full max-w-[900px] px-6">
-            <p
-              className="aw-font-heading text-xs font-bold uppercase tracking-[0.3em]"
-              style={{ color: "var(--aw-apply-eyebrow)" }}
-            >
-              Submit Your Entry
-            </p>
-            <h2
-              className="aw-font-heading mt-4 text-2xl font-extrabold uppercase tracking-[0.12em] md:text-3xl"
-              style={{ color: "var(--aw-apply-heading)" }}
-            >
-              Apply Now
-            </h2>
             {data.needsForm ? (
               <>
+                <p
+                  className="aw-font-heading text-xs font-bold uppercase tracking-[0.3em]"
+                  style={{ color: "var(--aw-apply-eyebrow)" }}
+                >
+                  Submit Your Entry
+                </p>
+                <h2
+                  className="aw-font-heading mt-4 text-2xl font-extrabold uppercase tracking-[0.12em] md:text-3xl"
+                  style={{ color: "var(--aw-apply-heading)" }}
+                >
+                  Apply Now
+                </h2>
                 <p
                   className="mt-4 max-w-2xl text-[0.975rem] leading-relaxed"
                   style={{ color: "var(--aw-apply-body)" }}
@@ -272,10 +272,10 @@ export function AwardPage({
               </>
             ) : (
               <p
-                className="mt-6 max-w-2xl border-l-4 py-2 pl-5 text-[0.975rem] leading-relaxed"
+                className="max-w-3xl border-l-4 py-2 pl-5 text-xl font-semibold leading-relaxed md:text-2xl"
                 style={{
                   borderColor: "var(--aw-apply-eyebrow)",
-                  color: "var(--aw-apply-body)",
+                  color: "var(--aw-apply-heading)",
                 }}
               >
                 This award does not require an application — see the criteria
