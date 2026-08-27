@@ -92,7 +92,7 @@ export type VotingPhase = "entries" | "voting" | "closed"
  * the app stays valid when this value is edited. Without the cast TypeScript
  * narrows to "voting" and flags the other branches as unreachable.
  */
-export const VOTING_PHASE = "entries" as VotingPhase
+export const VOTING_PHASE = "voting" as VotingPhase
 
 type PhaseCopy = {
   /** Short status chip, e.g. on the hub cards. */
@@ -117,7 +117,7 @@ const PHASE_COPY: Record<VotingPhase, PhaseCopy> = {
   voting: {
     badge: "Voting open",
     heading: "Cast your vote",
-    hubHeading: "It's time to vote",
+    hubHeading: "Voting is now open",
     body: "Pick your office, then choose the project you believe should take the award. One vote per office.",
   },
   closed: {
