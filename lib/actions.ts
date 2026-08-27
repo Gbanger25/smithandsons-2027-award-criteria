@@ -10,7 +10,7 @@ import {
   getCategoryData,
   officeKey,
 } from "@/lib/entries"
-import { resolveOffice } from "@/lib/offices"
+import { rememberOffice, resolveOffice } from "@/lib/offices"
 import { STATES } from "@/lib/awards"
 import { ENTRIES_OPEN, VOTING_OPEN, isVotingCategory } from "@/lib/voting"
 
@@ -189,6 +189,10 @@ export async function submitVote(
     console.log("[v0] Vote save failed:", error)
     return { ok: false, error: "We couldn't record your vote. Please retry." }
   }
+
+  // Remember the office so returning voters see which projects they've already
+  // backed, and don't have to re-pick their office on every category.
+  await rememberOffice(office)
 
   revalidatePath(`/vote/${categorySlug}`)
   revalidatePath("/admin")

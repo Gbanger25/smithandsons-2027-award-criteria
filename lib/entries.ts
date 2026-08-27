@@ -8,7 +8,7 @@ import {
 } from "@aws-sdk/lib-dynamodb"
 
 import {
-  KEY_NAMES,
+  PARTITION_KEY,
   SORT_KEY,
   TABLE_NAME,
   getDocClient,
@@ -145,7 +145,10 @@ export async function getCategoryData(
       new QueryCommand({
         TableName: TABLE_NAME,
         KeyConditionExpression: "#pk = :pk",
-        ExpressionAttributeNames: { ...KEY_NAMES },
+        // Only the partition key is referenced by this expression. DynamoDB
+        // rejects the request outright if ExpressionAttributeNames carries an
+        // unused alias, so the sort key must not be included here.
+        ExpressionAttributeNames: { "#pk": PARTITION_KEY },
         ExpressionAttributeValues: { ":pk": categoryPk(slug) },
         ExclusiveStartKey: startKey,
       }),

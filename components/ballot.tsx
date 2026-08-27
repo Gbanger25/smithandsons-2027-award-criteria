@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Check, ChevronDown, Loader2 } from "lucide-react"
+import { Check, ChevronDown, ImageOff, Loader2 } from "lucide-react"
 
 import { submitVote } from "@/lib/actions"
 import type { EntryImage } from "@/lib/entries"
@@ -35,15 +35,21 @@ export function Ballot({
   nominees,
   offices,
   votingOpen,
+  initialOffice = "",
+  initialVotedFor = null,
 }: {
   categorySlug: string
   nominees: Omit<BallotNominee, "isOwnOffice">[]
   offices: string[]
   votingOpen: boolean
+  /** Office remembered from a previous vote, resolved on the server. */
+  initialOffice?: string
+  /** Entry this office already voted for in this category, if any. */
+  initialVotedFor?: string | null
 }) {
-  const [office, setOffice] = useState("")
+  const [office, setOffice] = useState(initialOffice)
   const [expanded, setExpanded] = useState<string | null>(null)
-  const [votedFor, setVotedFor] = useState<string | null>(null)
+  const [votedFor, setVotedFor] = useState<string | null>(initialVotedFor)
   const [pendingId, setPendingId] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -183,11 +189,27 @@ export function Ballot({
                   loading="lazy"
                 />
               ) : (
+                // Entries submitted without photos still need a deliberate
+                // header — an empty block reads as a broken image.
                 <div
-                  aria-hidden="true"
-                  className="h-52 w-full"
-                  style={{ backgroundColor: "var(--aw-field)" }}
-                />
+                  className="flex h-20 w-full items-center justify-center gap-2 border-b"
+                  style={{
+                    backgroundColor: "var(--aw-field)",
+                    borderColor: "var(--aw-criteria-glass-border)",
+                  }}
+                >
+                  <ImageOff
+                    className="size-4 shrink-0 opacity-60"
+                    aria-hidden="true"
+                    style={{ color: "var(--aw-criteria-eyebrow)" }}
+                  />
+                  <span
+                    className="aw-font-heading text-[0.7rem] font-bold uppercase tracking-[0.18em] opacity-70"
+                    style={{ color: "var(--aw-criteria-eyebrow)" }}
+                  >
+                    No photos supplied
+                  </span>
+                </div>
               )}
 
               <div className="flex flex-1 flex-col gap-4 px-6 py-5">

@@ -9,7 +9,7 @@
  */
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb'
 import { DynamoDBDocumentClient, PutCommand } from '@aws-sdk/lib-dynamodb'
-import { fromWebToken } from '@aws-sdk/credential-providers'
+import { awsCredentialsProvider } from '@vercel/functions/oidc'
 
 const TABLE = process.env.DYNAMODB_TABLE_NAME
 const PK = process.env.DYNAMODB_TABLE_PARTITION_KEY
@@ -23,9 +23,8 @@ if (!TABLE || !PK || !SK) {
 const client = DynamoDBDocumentClient.from(
   new DynamoDBClient({
     region: process.env.AWS_REGION,
-    credentials: fromWebToken({
+    credentials: awsCredentialsProvider({
       roleArn: process.env.AWS_ROLE_ARN,
-      webIdentityToken: process.env.VERCEL_OIDC_TOKEN,
       clientConfig: { region: process.env.AWS_REGION },
     }),
   }),

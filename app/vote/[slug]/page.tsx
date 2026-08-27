@@ -6,8 +6,8 @@ import { ArrowLeft, FileText } from "lucide-react"
 import { Ballot } from "@/components/ballot"
 import { FlakeDecor } from "@/components/flake-decor"
 import { Snowfall } from "@/components/snowfall"
-import { approvedEntries, getCategoryData } from "@/lib/entries"
-import { loadOffices } from "@/lib/offices"
+import { approvedEntries, getCategoryData, voteForOffice } from "@/lib/entries"
+import { getRememberedOffice, loadOffices } from "@/lib/offices"
 import { ACTIVE_THEME, themeVars } from "@/lib/theme"
 import {
   VOTING_CATEGORY_SLUGS,
@@ -49,9 +49,10 @@ export default async function VoteCategoryPage({
   const theme = ACTIVE_THEME
   const copy = phaseCopy()
 
-  const [data, offices] = await Promise.all([
+  const [data, offices, rememberedOffice] = await Promise.all([
     getCategoryData(category.slug),
     loadOffices(),
+    getRememberedOffice(),
   ])
 
   const nominees = approvedEntries(data).map((entry) => ({
@@ -62,6 +63,10 @@ export default async function VoteCategoryPage({
     details: entry.details,
     images: entry.images,
   }))
+
+  // If this office already voted here, show that on load rather than making
+  // them re-pick and risk voting twice by accident.
+  const existingVote = voteForOffice(data, rememberedOffice)
 
   return (
     <div
@@ -204,6 +209,8 @@ export default async function VoteCategoryPage({
                 nominees={nominees}
                 offices={offices}
                 votingOpen={VOTING_OPEN}
+                initialOffice={rememberedOffice ?? ""}
+                initialVotedFor={existingVote?.entryId ?? null}
               />
             )}
           </div>

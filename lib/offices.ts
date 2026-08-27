@@ -2,8 +2,11 @@ import "server-only"
 
 import { readFile } from "node:fs/promises"
 import path from "node:path"
+import { cookies } from "next/headers"
 
 const OFFICE_FILE = path.join(process.cwd(), "public", "offices.txt")
+
+const OFFICE_COOKIE = "ss_awards_office"
 
 /**
  * Server-side copy of the office list. The client-side apply form still
@@ -38,4 +41,27 @@ export async function resolveOffice(
   const wanted = submitted.trim().toLowerCase()
   const offices = await loadOffices()
   return offices.find((office) => office.toLowerCase() === wanted)
+}
+
+/**
+ * Stores the voter's office after a successful vote. This is a convenience
+ * only — it is never trusted as identity. Every vote re-validates the office
+ * against the list, and the vote itself is keyed by office in DynamoDB, so
+ * clearing this cookie cannot buy an office a second vote.
+ */
+export async function rememberOffice(office: string): Promise<void> {
+  const store = await cookies()
+  store.set(OFFICE_COOKIE, office, {
+    httpOnly: true,
+    sameSite: "lax",
+    secure: true,
+    path: "/",
+    maxAge: 60 * 60 * 24 * 120,
+  })
+}
+
+/** Reads the remembered office, re-validating it against the current list. */
+export async function getRememberedOffice(): Promise<string | undefined> {
+  const store = await cookies()
+  return resolveOffice(store.get(OFFICE_COOKIE)?.value)
 }

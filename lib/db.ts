@@ -50,16 +50,6 @@ export function key(pk: string, sk: string): Record<string, string> {
   return { [PARTITION_KEY]: pk, [SORT_KEY]: sk }
 }
 
-/**
- * Shared expression-name map. Key attributes are referenced through aliases
- * because their real names come from env vars and could collide with reserved
- * words.
- */
-export const KEY_NAMES = {
-  "#pk": PARTITION_KEY,
-  "#sk": SORT_KEY,
-} as const
-
 export function isConfigured(): boolean {
   return Boolean(TABLE_NAME && PARTITION_KEY && SORT_KEY)
 }
