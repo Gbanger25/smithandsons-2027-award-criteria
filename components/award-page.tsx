@@ -5,6 +5,7 @@ import { FlakeDecor } from "@/components/flake-decor"
 import { Snowfall } from "@/components/snowfall"
 import type { AwardPage as AwardPageData, CriteriaBlock } from "@/lib/awards"
 import { ACTIVE_THEME, themeVars, type AwardTheme } from "@/lib/theme"
+import { ENTRIES_OPEN, isVotingCategory } from "@/lib/voting"
 
 function Bullets({ items }: { items: string[] }) {
   return (
@@ -79,6 +80,12 @@ export function AwardPage({
   /** Defaults to the active conference-year theme in lib/theme.ts. */
   theme?: AwardTheme
 }) {
+  // One of the nine People's Choice categories — entries feed its ballot.
+  const votable = isVotingCategory(data.slug)
+  // Only the votable categories are phase-gated; the other awards accept
+  // applications regardless of where People's Choice voting is up to.
+  const entriesClosed = votable && !ENTRIES_OPEN
+
   return (
     <div
       className="aw-font-body flex min-h-screen flex-col"
@@ -259,16 +266,37 @@ export function AwardPage({
                   className="aw-font-heading mt-4 text-2xl font-extrabold uppercase tracking-[0.12em] md:text-3xl"
                   style={{ color: "var(--aw-apply-heading)" }}
                 >
-                  Apply Now
+                  {entriesClosed ? "Entries Closed" : "Apply Now"}
                 </h2>
-                <p
-                  className="mt-4 max-w-2xl text-[0.975rem] leading-relaxed"
-                  style={{ color: "var(--aw-apply-body)" }}
-                >
-                  Complete the form below to submit your application for this
-                  award.
-                </p>
-                <ApplyForm awardTitle={data.title} />
+
+                {entriesClosed ? (
+                  /*
+                   * Once entries close there's nothing to submit, so show a
+                   * notice instead of a fully disabled form — a dead form under
+                   * a "closed" heading just invites confusion.
+                   */
+                  <p
+                    className="mt-4 max-w-2xl text-[0.975rem] leading-relaxed"
+                    style={{ color: "var(--aw-apply-body)" }}
+                  >
+                    Entries for this award have closed and are no longer being
+                    accepted.
+                  </p>
+                ) : (
+                  <>
+                    <p
+                      className="mt-4 max-w-2xl text-[0.975rem] leading-relaxed"
+                      style={{ color: "var(--aw-apply-body)" }}
+                    >
+                      Complete the form below to submit your application for
+                      this award.
+                    </p>
+                    <ApplyForm
+                      awardTitle={data.title}
+                      categorySlug={votable ? data.slug : undefined}
+                    />
+                  </>
+                )}
               </>
             ) : (
               <p
