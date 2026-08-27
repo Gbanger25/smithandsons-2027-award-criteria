@@ -58,7 +58,7 @@ export default async function AdminPage() {
       >
         <div className="mx-auto w-full max-w-[1080px] px-6">
           <Link
-            href="/"
+            href="/vote"
             className="group inline-flex w-fit items-center gap-2 border px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] transition-colors hover:brightness-110"
             style={{
               color: "var(--aw-criteria-eyebrow)",
@@ -70,7 +70,7 @@ export default async function AdminPage() {
               className="size-3.5 shrink-0 transition-transform group-hover:-translate-x-0.5"
               aria-hidden="true"
             />
-            Back to Site
+            Back to Voting
           </Link>
 
           {!configured ? (

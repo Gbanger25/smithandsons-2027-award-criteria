@@ -1,6 +1,6 @@
 import Link from "next/link"
 import type { Metadata } from "next"
-import { ArrowLeft, ArrowRight } from "lucide-react"
+import { ArrowRight } from "lucide-react"
 
 import { FlakeDecor } from "@/components/flake-decor"
 import { Snowfall } from "@/components/snowfall"
@@ -36,25 +36,8 @@ export default function VoteHubPage() {
         {theme.snow ? <Snowfall count={theme.snow.apply} seed={41} /> : null}
 
         <div className="relative mx-auto w-full max-w-[1080px] px-6">
-          <Link
-            href="/"
-            className="group inline-flex w-fit items-center gap-2 border px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] backdrop-blur-md transition-colors hover:brightness-110"
-            style={{
-              color: "var(--aw-apply-eyebrow)",
-              borderColor: "var(--aw-glass-border)",
-              backgroundColor: "var(--aw-glass)",
-              borderRadius: "var(--aw-radius)",
-            }}
-          >
-            <ArrowLeft
-              className="size-3.5 shrink-0 transition-transform group-hover:-translate-x-0.5"
-              aria-hidden="true"
-            />
-            Home
-          </Link>
-
           <p
-            className="aw-font-heading mt-8 text-xs font-bold uppercase tracking-[0.3em]"
+            className="aw-font-heading text-xs font-bold uppercase tracking-[0.3em]"
             style={{ color: "var(--aw-apply-eyebrow)" }}
           >
             People&apos;s Choice
