@@ -1,7 +1,7 @@
 import Link from "next/link"
 import type { Metadata } from "next"
 import { notFound } from "next/navigation"
-import { ArrowLeft, FileText } from "lucide-react"
+import { ArrowLeft } from "lucide-react"
 
 import { Ballot } from "@/components/ballot"
 import { FlakeDecor } from "@/components/flake-decor"
@@ -144,19 +144,6 @@ export default async function VoteCategoryPage({
                 aria-hidden="true"
               />
               All Categories
-            </Link>
-            <Link
-              href={`/awards/${category.slug}`}
-              className="inline-flex w-fit items-center gap-2 border px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] backdrop-blur-md transition-colors hover:brightness-110"
-              style={{
-                color: "var(--aw-eyebrow)",
-                borderColor: "var(--aw-glass-border)",
-                backgroundColor: "var(--aw-glass)",
-                borderRadius: "var(--aw-radius)",
-              }}
-            >
-              <FileText className="size-3.5 shrink-0" aria-hidden="true" />
-              View Criteria
             </Link>
           </div>
         </div>

@@ -31,12 +31,9 @@ export function ApplyForm({
    * keep the original local-only confirmation.
    */
   categorySlug,
-  /** False once entries have closed — the form is shown read-only. */
-  entriesOpen = true,
 }: {
   awardTitle: string
   categorySlug?: string
-  entriesOpen?: boolean
 }) {
   const [offices, setOffices] = useState<string[]>([])
   const [officeStatus, setOfficeStatus] = useState<
@@ -49,7 +46,6 @@ export function ApplyForm({
   const formRef = useRef<HTMLFormElement>(null)
 
   const storesEntry = Boolean(categorySlug)
-  const disabled = storesEntry && !entriesOpen
 
   useEffect(() => {
     let cancelled = false
@@ -125,7 +121,6 @@ export function ApplyForm({
             id="state"
             name="state"
             required
-            disabled={disabled}
             className={`${fieldClass} disabled:cursor-not-allowed disabled:opacity-70`}
             style={fieldStyle}
             defaultValue=""
@@ -149,7 +144,7 @@ export function ApplyForm({
             id="office"
             name="office"
             required
-            disabled={disabled || officeStatus !== "ready"}
+            disabled={officeStatus !== "ready"}
             className={`${fieldClass} disabled:cursor-not-allowed disabled:opacity-70`}
             style={fieldStyle}
             defaultValue=""
@@ -185,7 +180,6 @@ export function ApplyForm({
             type="text"
             required
             maxLength={120}
-            disabled={disabled}
             className={`${fieldClass} disabled:cursor-not-allowed disabled:opacity-70`}
             style={fieldStyle}
             placeholder="e.g. Hillside Kitchen Renovation"
@@ -205,7 +199,6 @@ export function ApplyForm({
           name="details"
           rows={7}
           required
-          disabled={disabled}
           className={`${fieldClass} resize-y leading-relaxed disabled:cursor-not-allowed disabled:opacity-70`}
           style={fieldStyle}
           placeholder="Tell us about the nomination against the criteria above."
@@ -221,7 +214,6 @@ export function ApplyForm({
           name="files"
           type="file"
           multiple
-          disabled={disabled}
           accept=".jpg,.jpeg,.png,.gif,image/jpeg,image/png,image/gif"
           className="aw-font-body w-full cursor-pointer border border-dashed px-4 py-3 text-sm file:mr-4 file:cursor-pointer file:rounded-[var(--aw-button-radius)] file:border-0 file:bg-[var(--aw-file-bg)] file:px-4 file:py-2 file:text-xs file:font-bold file:uppercase file:tracking-[0.12em] file:text-[var(--aw-file-fg)] disabled:cursor-not-allowed disabled:opacity-70"
           style={fieldStyle}
@@ -237,7 +229,7 @@ export function ApplyForm({
       <div className="flex flex-wrap items-center gap-4">
         <button
           type="submit"
-          disabled={disabled || isPending}
+          disabled={isPending}
           className="aw-font-heading inline-flex items-center gap-2 bg-[var(--aw-button-bg)] px-9 py-4 text-xs font-bold uppercase tracking-[0.16em] transition-colors hover:bg-[var(--aw-button-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--aw-button-bg)] disabled:cursor-not-allowed disabled:opacity-60"
           style={{
             color: "var(--aw-button-fg)",
@@ -249,8 +241,6 @@ export function ApplyForm({
               <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden="true" />
               Submitting…
             </>
-          ) : disabled ? (
-            "Entries Closed"
           ) : (
             "Submit Application"
           )}

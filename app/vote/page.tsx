@@ -50,7 +50,7 @@ export default function VoteHubPage() {
               className="size-3.5 shrink-0 transition-transform group-hover:-translate-x-0.5"
               aria-hidden="true"
             />
-            All Awards
+            Home
           </Link>
 
           <p

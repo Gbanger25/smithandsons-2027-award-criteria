@@ -107,10 +107,12 @@ type PhaseCopy = {
 
 const PHASE_COPY: Record<VotingPhase, PhaseCopy> = {
   entries: {
-    badge: "Entries open",
-    heading: "Entries are open",
-    hubHeading: "Enter your project",
-    body: "Offices are still submitting projects for this category. Voting opens once entries close.",
+    badge: "Voting not yet open",
+    heading: "Voting hasn't opened yet",
+    // This section is voting only, so the pre-voting copy must not read as an
+    // invitation to enter. Entries are handled on the Awards Criteria pages.
+    hubHeading: "Voting opens soon",
+    body: "Projects are still being submitted for this category. Check back here once voting opens.",
   },
   voting: {
     badge: "Voting open",
