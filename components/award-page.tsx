@@ -1,10 +1,11 @@
 import Link from "next/link"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Vote } from "lucide-react"
 import { ApplyForm } from "@/components/apply-form"
 import { FlakeDecor } from "@/components/flake-decor"
 import { Snowfall } from "@/components/snowfall"
 import type { AwardPage as AwardPageData, CriteriaBlock } from "@/lib/awards"
 import { ACTIVE_THEME, themeVars, type AwardTheme } from "@/lib/theme"
+import { ENTRIES_OPEN, VOTING_OPEN, isVotingCategory } from "@/lib/voting"
 
 function Bullets({ items }: { items: string[] }) {
   return (
@@ -79,6 +80,9 @@ export function AwardPage({
   /** Defaults to the active conference-year theme in lib/theme.ts. */
   theme?: AwardTheme
 }) {
+  // One of the nine People's Choice categories — entries feed its ballot.
+  const votable = isVotingCategory(data.slug)
+
   return (
     <div
       className="aw-font-body flex min-h-screen flex-col"
@@ -143,22 +147,40 @@ export function AwardPage({
               {data.title}
             </h1>
           </div>
-          <Link
-            href="/"
-            className="group mt-5 inline-flex w-fit items-center gap-2 border px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] backdrop-blur-md transition-colors hover:brightness-110"
-            style={{
-              color: "var(--aw-eyebrow)",
-              borderColor: "var(--aw-glass-border)",
-              backgroundColor: "var(--aw-glass)",
-              borderRadius: "var(--aw-radius)",
-            }}
-          >
-            <ArrowLeft
-              className="size-3.5 shrink-0 transition-transform group-hover:-translate-x-0.5"
-              aria-hidden="true"
-            />
-            Back to All Awards
-          </Link>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <Link
+              href="/"
+              className="group inline-flex w-fit items-center gap-2 border px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] backdrop-blur-md transition-colors hover:brightness-110"
+              style={{
+                color: "var(--aw-eyebrow)",
+                borderColor: "var(--aw-glass-border)",
+                backgroundColor: "var(--aw-glass)",
+                borderRadius: "var(--aw-radius)",
+              }}
+            >
+              <ArrowLeft
+                className="size-3.5 shrink-0 transition-transform group-hover:-translate-x-0.5"
+                aria-hidden="true"
+              />
+              Back to All Awards
+            </Link>
+
+            {votable && !ENTRIES_OPEN ? (
+              <Link
+                href={`/vote/${data.slug}`}
+                className="inline-flex w-fit items-center gap-2 border px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] backdrop-blur-md transition-colors hover:brightness-110"
+                style={{
+                  color: "var(--aw-eyebrow)",
+                  borderColor: "var(--aw-glass-border)",
+                  backgroundColor: "var(--aw-glass)",
+                  borderRadius: "var(--aw-radius)",
+                }}
+              >
+                <Vote className="size-3.5 shrink-0" aria-hidden="true" />
+                {VOTING_OPEN ? "Vote Now" : "View Nominees"}
+              </Link>
+            ) : null}
+          </div>
         </div>
       </header>
 
@@ -265,10 +287,15 @@ export function AwardPage({
                   className="mt-4 max-w-2xl text-[0.975rem] leading-relaxed"
                   style={{ color: "var(--aw-apply-body)" }}
                 >
-                  Complete the form below to submit your application for this
-                  award.
+                  {votable && !ENTRIES_OPEN
+                    ? "Entries for this award have closed. Head to the ballot to see the nominated projects."
+                    : "Complete the form below to submit your application for this award."}
                 </p>
-                <ApplyForm awardTitle={data.title} />
+                <ApplyForm
+                  awardTitle={data.title}
+                  categorySlug={votable ? data.slug : undefined}
+                  entriesOpen={ENTRIES_OPEN}
+                />
               </>
             ) : (
               <p

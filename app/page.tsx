@@ -1,10 +1,12 @@
 import Link from "next/link"
+import { Vote } from "lucide-react"
 
 import { Snowfall } from "@/components/snowfall"
 import { FlakeDecor } from "@/components/flake-decor"
 import { HeroCarousel, type HeroSlide } from "@/components/hero-carousel"
 import { AWARDS } from "@/lib/awards"
 import { ACTIVE_THEME, themeVars } from "@/lib/theme"
+import { VOTING_PHASE } from "@/lib/voting"
 
 const HERO_SLIDES: HeroSlide[] = [
   {
@@ -121,6 +123,21 @@ export default function Page() {
           >
             Select an award to view its judging criteria and submit an entry.
           </p>
+
+          <Link
+            href="/vote"
+            className="aw-font-heading mt-7 inline-flex w-fit items-center gap-2 px-8 py-4 text-xs font-bold uppercase tracking-[0.16em] transition-colors hover:bg-[var(--aw-button-hover)]"
+            style={{
+              backgroundColor: "var(--aw-button-bg)",
+              color: "var(--aw-button-fg)",
+              borderRadius: "var(--aw-button-radius)",
+            }}
+          >
+            <Vote className="size-4 shrink-0" aria-hidden="true" />
+            {VOTING_PHASE === "closed"
+              ? "View People's Choice Nominees"
+              : "Vote — People's Choice Awards"}
+          </Link>
         </div>
       </header>
 
