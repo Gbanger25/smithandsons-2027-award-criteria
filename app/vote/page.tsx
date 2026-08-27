@@ -63,7 +63,7 @@ export default function VoteHubPage() {
             className="aw-font-heading mt-4 text-3xl font-extrabold uppercase leading-[1.1] tracking-tight text-balance md:text-5xl"
             style={{ color: "var(--aw-apply-heading)" }}
           >
-            It&apos;s Time To Vote
+            {copy.hubHeading}
           </h1>
           <p
             className="mt-5 max-w-2xl text-[0.975rem] leading-relaxed"

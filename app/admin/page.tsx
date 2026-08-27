@@ -108,9 +108,10 @@ export default async function AdminPage() {
                     className="mt-3 text-sm leading-relaxed"
                     style={{ color: "var(--aw-body)" }}
                   >
-                    {totals.entries} entries across 9 categories ·{" "}
-                    {totals.pending} awaiting approval · {totals.votes} votes
-                    cast.
+                    {totals.entries} {totals.entries === 1 ? "entry" : "entries"}{" "}
+                    across {VOTING_CATEGORIES.length} categories ·{" "}
+                    {totals.pending} awaiting approval · {totals.votes}{" "}
+                    {totals.votes === 1 ? "vote" : "votes"} cast.
                   </p>
                 </div>
 
