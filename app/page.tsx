@@ -1,12 +1,10 @@
 import Link from "next/link"
-import { Vote } from "lucide-react"
 
 import { Snowfall } from "@/components/snowfall"
 import { FlakeDecor } from "@/components/flake-decor"
 import { HeroCarousel, type HeroSlide } from "@/components/hero-carousel"
 import { AWARDS } from "@/lib/awards"
 import { ACTIVE_THEME, themeVars } from "@/lib/theme"
-import { VOTING_PHASE } from "@/lib/voting"
 
 const HERO_SLIDES: HeroSlide[] = [
   {
@@ -123,48 +121,6 @@ export default function Page() {
           >
             Select an award to view its judging criteria and submit an entry.
           </p>
-
-          {/*
-           * People's Choice is a separate section: this page covers criteria and
-           * applications, while /vote is voting only. Framed as a distinct
-           * destination rather than a CTA about the awards listed below.
-           */}
-          <div
-            className="mt-8 flex w-fit max-w-xl flex-col gap-3 border p-5 backdrop-blur-md"
-            style={{
-              borderColor: "var(--aw-glass-border)",
-              backgroundColor: "var(--aw-glass)",
-              borderRadius: "var(--aw-radius)",
-            }}
-          >
-            <p
-              className="aw-font-heading text-[0.7rem] font-bold uppercase tracking-[0.24em]"
-              style={{ color: "var(--aw-apply-eyebrow)" }}
-            >
-              Separate Section
-            </p>
-            <p
-              className="text-[0.95rem] leading-relaxed"
-              style={{ color: "var(--aw-apply-body)" }}
-            >
-              The People&apos;s Choice Awards are decided by a vote of the
-              network, not by an application.
-            </p>
-            <Link
-              href="/vote"
-              className="aw-font-heading inline-flex w-fit items-center gap-2 px-6 py-3 text-xs font-bold uppercase tracking-[0.16em] transition-colors hover:bg-[var(--aw-button-hover)]"
-              style={{
-                backgroundColor: "var(--aw-button-bg)",
-                color: "var(--aw-button-fg)",
-                borderRadius: "var(--aw-button-radius)",
-              }}
-            >
-              <Vote className="size-4 shrink-0" aria-hidden="true" />
-              {VOTING_PHASE === "closed"
-                ? "View People's Choice Nominees"
-                : "Go to People's Choice Voting"}
-            </Link>
-          </div>
         </div>
       </header>
 
