@@ -92,7 +92,7 @@ export type VotingPhase = "entries" | "voting" | "closed"
  * the app stays valid when this value is edited. Without the cast TypeScript
  * narrows to "voting" and flags the other branches as unreachable.
  */
-export const VOTING_PHASE = "entries" as VotingPhase
+export const VOTING_PHASE = "voting" as VotingPhase
 
 type PhaseCopy = {
   /** Short status chip, e.g. on the hub cards. */
@@ -107,17 +107,18 @@ type PhaseCopy = {
 
 const PHASE_COPY: Record<VotingPhase, PhaseCopy> = {
   entries: {
-    badge: "Voting not yet open",
-    heading: "Voting hasn't opened yet",
-    // This section is voting only, so the pre-voting copy must not read as an
-    // invitation to enter. Entries are handled on the Awards Criteria pages.
-    hubHeading: "Voting opens soon",
-    body: "Projects are still being submitted for this category. Check back here once voting opens.",
+    // The ballot URL is only shared once voting is live, so this pre-launch
+    // state must never announce that voting is closed or "not open yet".
+    // Keep it neutral — just present the nominees.
+    badge: "People's Choice",
+    heading: "Meet the nominees",
+    hubHeading: "People's Choice Awards",
+    body: "Take a look at the projects nominated in this category.",
   },
   voting: {
     badge: "Voting open",
     heading: "Cast your vote",
-    hubHeading: "It's time to vote",
+    hubHeading: "Voting is now open",
     body: "Pick your office, then choose the project you believe should take the award. One vote per office.",
   },
   closed: {
