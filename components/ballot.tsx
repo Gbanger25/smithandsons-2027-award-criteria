@@ -60,9 +60,18 @@ export function Ballot({
 
   const normalise = (value: string) => value.trim().toLowerCase()
 
+  // Voting must not be swayed by location, so every nominee is presented as
+  // "Entry N" rather than by project title, suburb, or office. The number is
+  // each entry's fixed position in the (already oldest-first) list, so it
+  // stays the same for every voter and across reloads.
+  const numberedNominees = nominees.map((nominee, index) => ({
+    ...nominee,
+    entryNumber: index + 1,
+  }))
+
   // An office can't vote for its own entry, so those are excluded from the
   // dropdown. Recomputes whenever the selected office changes.
-  const votableNominees = nominees.filter(
+  const votableNominees = numberedNominees.filter(
     (nominee) =>
       office.length > 0 && normalise(nominee.office) !== normalise(office),
   )
@@ -169,7 +178,7 @@ export function Ballot({
                 </option>
                 {votableNominees.map((nominee) => (
                   <option key={nominee.id} value={nominee.id}>
-                    {nominee.projectTitle} — {nominee.office}, {nominee.state}
+                    Entry {nominee.entryNumber}
                   </option>
                 ))}
               </select>
@@ -230,7 +239,7 @@ export function Ballot({
       ) : null}
 
       <ul className="grid gap-5 md:grid-cols-2">
-        {nominees.map((nominee) => {
+        {numberedNominees.map((nominee) => {
           const isOwnOffice =
             office.length > 0 &&
             normalise(nominee.office) === normalise(office)
@@ -254,7 +263,7 @@ export function Ballot({
               {cover ? (
                 <img
                   src={cover.url}
-                  alt={`${nominee.projectTitle} — submitted by ${nominee.office}`}
+                  alt={`Entry ${nominee.entryNumber} — cover photo`}
                   className="h-52 w-full object-cover"
                   loading="lazy"
                 />
@@ -288,14 +297,8 @@ export function Ballot({
                     className="aw-font-heading text-base font-bold uppercase leading-snug tracking-wide text-pretty"
                     style={{ color: "var(--aw-criteria-title)" }}
                   >
-                    {nominee.projectTitle}
+                    Entry {nominee.entryNumber}
                   </h3>
-                  <p
-                    className="aw-font-heading text-xs font-bold uppercase tracking-[0.18em]"
-                    style={{ color: "var(--aw-criteria-eyebrow)" }}
-                  >
-                    {nominee.office} · {nominee.state}
-                  </p>
                 </div>
 
                 <button
@@ -332,7 +335,7 @@ export function Ballot({
                           <img
                             key={image.url}
                             src={image.url}
-                            alt={`${nominee.projectTitle} — ${image.name}`}
+                            alt={`Entry ${nominee.entryNumber} — additional photo`}
                             className="h-20 w-full object-cover"
                             style={{ borderRadius: "var(--aw-radius)" }}
                             loading="lazy"
