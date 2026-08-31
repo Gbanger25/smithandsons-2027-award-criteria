@@ -107,12 +107,13 @@ type PhaseCopy = {
 
 const PHASE_COPY: Record<VotingPhase, PhaseCopy> = {
   entries: {
-    badge: "Voting not yet open",
-    heading: "Voting hasn't opened yet",
-    // This section is voting only, so the pre-voting copy must not read as an
-    // invitation to enter. Entries are handled on the Awards Criteria pages.
-    hubHeading: "Voting opens soon",
-    body: "Projects are still being submitted for this category. Check back here once voting opens.",
+    // The ballot URL is only shared once voting is live, so this pre-launch
+    // state must never announce that voting is closed or "not open yet".
+    // Keep it neutral — just present the nominees.
+    badge: "People's Choice",
+    heading: "Meet the nominees",
+    hubHeading: "People's Choice Awards",
+    body: "Take a look at the projects nominated in this category.",
   },
   voting: {
     badge: "Voting open",
