@@ -50,12 +50,22 @@ export function Ballot({
   const [office, setOffice] = useState(initialOffice)
   const [expanded, setExpanded] = useState<string | null>(null)
   const [votedFor, setVotedFor] = useState<string | null>(initialVotedFor)
-  const [pendingId, setPendingId] = useState<string | null>(null)
+  const [selectedEntry, setSelectedEntry] = useState<string>(
+    initialVotedFor ?? "",
+  )
+  const [isVoting, setIsVoting] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [, startTransition] = useTransition()
 
   const normalise = (value: string) => value.trim().toLowerCase()
+
+  // An office can't vote for its own entry, so those are excluded from the
+  // dropdown. Recomputes whenever the selected office changes.
+  const votableNominees = nominees.filter(
+    (nominee) =>
+      office.length > 0 && normalise(nominee.office) !== normalise(office),
+  )
 
   function handleVote(entryId: string) {
     setError(null)
@@ -66,15 +76,20 @@ export function Ballot({
       return
     }
 
+    if (!entryId) {
+      setError("Please select the entry you are voting for.")
+      return
+    }
+
     const formData = new FormData()
     formData.set("categorySlug", categorySlug)
     formData.set("entryId", entryId)
     formData.set("office", office)
 
-    setPendingId(entryId)
+    setIsVoting(true)
     startTransition(async () => {
       const result = await submitVote(formData)
-      setPendingId(null)
+      setIsVoting(false)
       if (result.ok) {
         setVotedFor(entryId)
         setMessage(result.message)
@@ -87,14 +102,14 @@ export function Ballot({
   return (
     <div className="flex flex-col gap-8">
       <div
-        className="flex flex-col gap-4 border px-6 py-5 backdrop-blur-xl md:flex-row md:items-end"
+        className="flex flex-col gap-5 border px-6 py-5 backdrop-blur-xl"
         style={{
           backgroundColor: "var(--aw-criteria-glass)",
           borderColor: "var(--aw-criteria-glass-border)",
           borderRadius: "var(--aw-radius)",
         }}
       >
-        <div className="flex-1">
+        <div>
           <label
             className={labelClass}
             style={{ color: "var(--aw-criteria-eyebrow)" }}
@@ -109,8 +124,10 @@ export function Ballot({
             value={office}
             onChange={(event) => {
               setOffice(event.target.value)
-              // Switching office invalidates the previous confirmation.
+              // Switching office invalidates the previous confirmation and the
+              // entry selection, since own-office options differ per office.
               setVotedFor(null)
+              setSelectedEntry("")
               setMessage(null)
               setError(null)
             }}
@@ -123,6 +140,67 @@ export function Ballot({
             ))}
           </select>
         </div>
+
+        {votingOpen ? (
+          <div>
+            <label
+              className={labelClass}
+              style={{ color: "var(--aw-criteria-eyebrow)" }}
+              htmlFor="voter-entry"
+            >
+              Select The Entry You Are Voting For Below:*
+            </label>
+            <div className="flex flex-col gap-3 md:flex-row md:items-stretch">
+              <select
+                id="voter-entry"
+                className={`${fieldClass} md:flex-1`}
+                style={fieldStyle}
+                value={selectedEntry}
+                disabled={!office}
+                onChange={(event) => {
+                  setSelectedEntry(event.target.value)
+                  setError(null)
+                }}
+              >
+                <option value="">
+                  {office
+                    ? "Select an entry…"
+                    : "Select your office first…"}
+                </option>
+                {votableNominees.map((nominee) => (
+                  <option key={nominee.id} value={nominee.id}>
+                    {nominee.projectTitle} — {nominee.office}, {nominee.state}
+                  </option>
+                ))}
+              </select>
+              <button
+                type="button"
+                onClick={() => handleVote(selectedEntry)}
+                disabled={isVoting || !office || !selectedEntry}
+                className="aw-font-heading inline-flex items-center justify-center gap-2 px-6 py-3 text-xs font-bold uppercase tracking-[0.16em] transition-colors hover:bg-[var(--aw-button-hover)] disabled:cursor-not-allowed disabled:opacity-60"
+                style={{
+                  backgroundColor: "var(--aw-button-bg)",
+                  color: "var(--aw-button-fg)",
+                  borderRadius: "var(--aw-button-radius)",
+                }}
+              >
+                {isVoting ? (
+                  <>
+                    <Loader2
+                      className="size-3.5 shrink-0 animate-spin"
+                      aria-hidden="true"
+                    />
+                    Recording…
+                  </>
+                ) : votedFor ? (
+                  "Update Vote"
+                ) : (
+                  "Submit Vote"
+                )}
+              </button>
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {message ? (
@@ -158,7 +236,6 @@ export function Ballot({
             normalise(nominee.office) === normalise(office)
           const isOpen = expanded === nominee.id
           const isVoted = votedFor === nominee.id
-          const isPending = pendingId === nominee.id
           const cover = nominee.images[0]
 
           return (
@@ -266,9 +343,17 @@ export function Ballot({
                   </div>
                 ) : null}
 
-                <div className="mt-auto pt-2">
-                  {votingOpen ? (
-                    isOwnOffice ? (
+                {votingOpen && (isVoted || isOwnOffice) ? (
+                  <div className="mt-auto pt-2">
+                    {isVoted ? (
+                      <p
+                        className="aw-font-heading inline-flex items-center gap-2 text-xs font-bold uppercase tracking-[0.16em]"
+                        style={{ color: "var(--aw-criteria-eyebrow)" }}
+                      >
+                        <Check className="size-3.5 shrink-0" aria-hidden="true" />
+                        Your vote
+                      </p>
+                    ) : (
                       <p
                         className="text-xs font-semibold italic"
                         style={{ color: "var(--aw-note-text)" }}
@@ -276,40 +361,9 @@ export function Ballot({
                         This is your office&apos;s entry — you can&apos;t vote
                         for it.
                       </p>
-                    ) : (
-                      <button
-                        type="button"
-                        onClick={() => handleVote(nominee.id)}
-                        disabled={isPending || !office}
-                        className="aw-font-heading inline-flex w-full items-center justify-center gap-2 px-6 py-3 text-xs font-bold uppercase tracking-[0.16em] transition-colors hover:bg-[var(--aw-button-hover)] disabled:cursor-not-allowed disabled:opacity-60"
-                        style={{
-                          backgroundColor: isVoted
-                            ? "var(--aw-button-hover)"
-                            : "var(--aw-button-bg)",
-                          color: "var(--aw-button-fg)",
-                          borderRadius: "var(--aw-button-radius)",
-                        }}
-                      >
-                        {isPending ? (
-                          <>
-                            <Loader2
-                              className="size-3.5 shrink-0 animate-spin"
-                              aria-hidden="true"
-                            />
-                            Recording…
-                          </>
-                        ) : isVoted ? (
-                          <>
-                            <Check className="size-3.5 shrink-0" aria-hidden="true" />
-                            Your vote
-                          </>
-                        ) : (
-                          "Vote for this project"
-                        )}
-                      </button>
-                    )
-                  ) : null}
-                </div>
+                    )}
+                  </div>
+                ) : null}
               </div>
             </li>
           )
