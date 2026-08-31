@@ -159,26 +159,7 @@ export default async function VoteCategoryPage({
         ) : null}
 
         <div className="relative mx-auto w-full max-w-[1080px] px-6">
-          <p
-            className="aw-font-heading text-sm font-bold uppercase tracking-[0.25em]"
-            style={{ color: "var(--aw-criteria-eyebrow)" }}
-          >
-            {nominees.length} {nominees.length === 1 ? "Nominee" : "Nominees"}
-          </p>
-          <h2
-            className="aw-font-heading mt-3 text-3xl font-extrabold uppercase leading-[1.05] tracking-tight md:text-5xl"
-            style={{ color: "var(--aw-criteria-title)" }}
-          >
-            {copy.heading}
-          </h2>
-          <p
-            className="mt-4 max-w-2xl text-base leading-relaxed"
-            style={{ color: "var(--aw-body)" }}
-          >
-            {copy.body}
-          </p>
-
-          <div className="mt-10">
+          <div>
             {nominees.length === 0 ? (
               <p
                 className="max-w-2xl border-l-4 py-2 pl-5 text-lg font-semibold leading-relaxed"
