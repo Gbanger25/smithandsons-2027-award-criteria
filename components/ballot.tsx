@@ -100,7 +100,7 @@ export function Ballot({
             style={{ color: "var(--aw-criteria-eyebrow)" }}
             htmlFor="voter-office"
           >
-            Step 1 — Your Office
+            Your Office
           </label>
           <select
             id="voter-office"
@@ -123,13 +123,6 @@ export function Ballot({
             ))}
           </select>
         </div>
-        <p
-          className="flex-1 text-sm leading-relaxed"
-          style={{ color: "var(--aw-body)" }}
-        >
-          One vote per office, per category. You can change your vote — the
-          latest one counts.
-        </p>
       </div>
 
       {message ? (
