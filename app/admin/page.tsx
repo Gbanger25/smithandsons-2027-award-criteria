@@ -1,6 +1,6 @@
 import Link from "next/link"
 import type { Metadata } from "next"
-import { ArrowLeft } from "lucide-react"
+import { ArrowLeft, Download } from "lucide-react"
 
 import { AdminCategory } from "@/components/admin-category"
 import { AdminLogin } from "@/components/admin-login"
@@ -115,19 +115,34 @@ export default async function AdminPage() {
                   </p>
                 </div>
 
-                <form action={logout}>
-                  <button
-                    type="submit"
-                    className="aw-font-heading inline-flex items-center border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em]"
+                <div className="flex flex-wrap items-center gap-2">
+                  <a
+                    href="/admin/export"
+                    className="aw-font-heading inline-flex items-center gap-1.5 px-4 py-2 text-xs font-bold uppercase tracking-[0.16em] transition-colors hover:bg-[var(--aw-button-hover)]"
                     style={{
-                      borderColor: "var(--aw-criteria-glass-border)",
-                      color: "var(--aw-body)",
+                      backgroundColor: "var(--aw-button-bg)",
+                      color: "var(--aw-button-fg)",
                       borderRadius: "var(--aw-button-radius)",
                     }}
                   >
-                    Sign Out
-                  </button>
-                </form>
+                    <Download className="size-3.5 shrink-0" aria-hidden="true" />
+                    Export Voting Data
+                  </a>
+
+                  <form action={logout}>
+                    <button
+                      type="submit"
+                      className="aw-font-heading inline-flex items-center border px-4 py-2 text-xs font-bold uppercase tracking-[0.16em]"
+                      style={{
+                        borderColor: "var(--aw-criteria-glass-border)",
+                        color: "var(--aw-body)",
+                        borderRadius: "var(--aw-button-radius)",
+                      }}
+                    >
+                      Sign Out
+                    </button>
+                  </form>
+                </div>
               </div>
 
               <div className="mt-8 flex flex-col gap-5">
