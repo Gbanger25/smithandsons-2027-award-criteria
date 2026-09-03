@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState, useTransition } from "react"
 import { Loader2 } from "lucide-react"
 
-import { submitEntry } from "@/lib/actions"
+import { submitApplication, submitEntry } from "@/lib/actions"
 import { STATES } from "@/lib/awards"
 
 const OFFICE_LIST_URL = "/offices.txt"
@@ -27,13 +27,18 @@ export function ApplyForm({
   awardTitle,
   /**
    * Set for the nine People's Choice categories. When present the form stores
-   * the entry so it can appear on that category's ballot; the other awards
-   * keep the original local-only confirmation.
+   * the entry so it can appear on that category's ballot.
    */
   categorySlug,
+  /**
+   * Set for internally-judged awards. When present the form stores a written
+   * application for the judging panel (no ballot, no public listing).
+   */
+  awardSlug,
 }: {
   awardTitle: string
   categorySlug?: string
+  awardSlug?: string
 }) {
   const [offices, setOffices] = useState<string[]>([])
   const [officeStatus, setOfficeStatus] = useState<
@@ -46,6 +51,10 @@ export function ApplyForm({
   const formRef = useRef<HTMLFormElement>(null)
 
   const storesEntry = Boolean(categorySlug)
+  const storesApplication = Boolean(awardSlug)
+  // Both stored paths hit the server; only the truly backend-less awards
+  // (none, currently) fall back to the local confirmation.
+  const storesRemotely = storesEntry || storesApplication
 
   useEffect(() => {
     let cancelled = false
@@ -79,8 +88,8 @@ export function ApplyForm({
     setError(null)
     setMessage(null)
 
-    // Awards without a ballot have no backend yet — keep the original behaviour.
-    if (!storesEntry) {
+    // Any award with no storage target keeps the original local confirmation.
+    if (!storesRemotely) {
       setSubmitted(true)
       return
     }
@@ -89,7 +98,9 @@ export function ApplyForm({
     const formData = new FormData(form)
 
     startTransition(async () => {
-      const result = await submitEntry(formData)
+      const result = storesEntry
+        ? await submitEntry(formData)
+        : await submitApplication(formData)
       if (result.ok) {
         setMessage(result.message)
         setSubmitted(true)
@@ -110,6 +121,9 @@ export function ApplyForm({
       <input type="hidden" name="award" value={awardTitle} />
       {categorySlug ? (
         <input type="hidden" name="categorySlug" value={categorySlug} />
+      ) : null}
+      {awardSlug ? (
+        <input type="hidden" name="awardSlug" value={awardSlug} />
       ) : null}
 
       <div className="flex flex-col gap-6 md:flex-row">

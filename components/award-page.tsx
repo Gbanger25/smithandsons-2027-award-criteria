@@ -294,6 +294,7 @@ export function AwardPage({
                     <ApplyForm
                       awardTitle={data.title}
                       categorySlug={votable ? data.slug : undefined}
+                      awardSlug={votable ? undefined : data.slug}
                     />
                   </>
                 )}
