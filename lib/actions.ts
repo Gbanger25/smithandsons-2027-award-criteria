@@ -6,13 +6,19 @@ import { put } from "@vercel/blob"
 import {
   type EntryImage,
   castVote,
+  createApplication,
   createEntry,
   getCategoryData,
   officeKey,
 } from "@/lib/entries"
 import { rememberOffice, resolveOffice } from "@/lib/offices"
-import { STATES } from "@/lib/awards"
-import { ENTRIES_OPEN, VOTING_OPEN, isVotingCategory } from "@/lib/voting"
+import { STATES, getAward } from "@/lib/awards"
+import {
+  ENTRIES_OPEN,
+  VOTING_OPEN,
+  isApplicationAward,
+  isVotingCategory,
+} from "@/lib/voting"
 
 export type ActionResult = { ok: true; message: string } | {
   ok: false
@@ -137,6 +143,110 @@ export async function submitEntry(
     ok: true,
     message:
       "Thanks — your entry has been submitted and will appear once it's approved.",
+  }
+}
+
+/* ------------------------------------------------------------------ *
+ * Application submission (internally-judged awards)
+ * ------------------------------------------------------------------ */
+
+export async function submitApplication(
+  formData: FormData,
+): Promise<ActionResult> {
+  const awardSlug = String(formData.get("awardSlug") ?? "")
+
+  if (!isApplicationAward(awardSlug)) {
+    return { ok: false, error: "This award doesn't accept online applications." }
+  }
+
+  const award = getAward(awardSlug)
+  if (!award) {
+    return { ok: false, error: "Unknown award." }
+  }
+
+  // Office is validated against public/offices.txt — never trust the submitted
+  // value since a <select> is trivially editable client-side.
+  const office = await resolveOffice(String(formData.get("office") ?? ""))
+  if (!office) {
+    return { ok: false, error: "Please choose your office from the list." }
+  }
+
+  const state = String(formData.get("state") ?? "")
+  if (!(STATES as readonly string[]).includes(state)) {
+    return { ok: false, error: "Please choose a valid state or country." }
+  }
+
+  const details = String(formData.get("details") ?? "").trim()
+  if (details.length < 20) {
+    return {
+      ok: false,
+      error: "Please describe the nomination against the criteria above.",
+    }
+  }
+  if (details.length > MAX_DETAILS) {
+    return { ok: false, error: "Application details are too long." }
+  }
+
+  const files = formData
+    .getAll("files")
+    .filter((value): value is File => value instanceof File && value.size > 0)
+
+  if (files.length > MAX_FILES) {
+    return { ok: false, error: `Please attach no more than ${MAX_FILES} images.` }
+  }
+
+  for (const file of files) {
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      return { ok: false, error: `"${file.name}" is not a jpg, png or gif.` }
+    }
+    if (file.size > MAX_FILE_BYTES) {
+      return { ok: false, error: `"${file.name}" is larger than 15MB.` }
+    }
+  }
+
+  let images: EntryImage[] = []
+
+  try {
+    images = await Promise.all(
+      files.map(async (file) => {
+        const blob = await put(
+          `applications/${awardSlug}/${officeKey(office)}/${file.name}`,
+          file,
+          { access: "public", addRandomSuffix: true },
+        )
+        return { url: blob.url, name: file.name }
+      }),
+    )
+  } catch (error) {
+    console.log("[v0] Application image upload failed:", error)
+    return {
+      ok: false,
+      error: "We couldn't upload your images. Please try again.",
+    }
+  }
+
+  try {
+    await createApplication({
+      awardSlug,
+      awardTitle: award.title,
+      office,
+      state,
+      details,
+      images,
+    })
+  } catch (error) {
+    console.log("[v0] Application save failed:", error)
+    return {
+      ok: false,
+      error: "We couldn't save your application. Please try again.",
+    }
+  }
+
+  revalidatePath("/admin")
+
+  return {
+    ok: true,
+    message: "Thanks — your application has been submitted to the judging panel.",
   }
 }
 

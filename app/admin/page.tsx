@@ -2,13 +2,19 @@ import Link from "next/link"
 import type { Metadata } from "next"
 import { ArrowLeft, Download } from "lucide-react"
 
+import { AdminApplications } from "@/components/admin-applications"
 import { AdminCategory } from "@/components/admin-category"
 import { AdminLogin } from "@/components/admin-login"
 import { logout } from "@/lib/admin-actions"
 import { adminConfigured, isAdmin } from "@/lib/admin-auth"
-import { getCategoryData, rankedEntries } from "@/lib/entries"
+import { getApplications, getCategoryData, rankedEntries } from "@/lib/entries"
 import { ACTIVE_THEME, themeVars } from "@/lib/theme"
-import { VOTING_CATEGORIES, VOTING_PHASE, phaseCopy } from "@/lib/voting"
+import {
+  APPLICATION_AWARDS,
+  VOTING_CATEGORIES,
+  VOTING_PHASE,
+  phaseCopy,
+} from "@/lib/voting"
 
 export const metadata: Metadata = {
   title: "Awards Admin | Smith & Sons",
@@ -35,6 +41,20 @@ export default async function AdminPage() {
         }),
       )
     : []
+
+  const applicationGroups = authed
+    ? await Promise.all(
+        APPLICATION_AWARDS.map(async (award) => ({
+          award,
+          applications: await getApplications(award.slug),
+        })),
+      )
+    : []
+
+  const totalApplications = applicationGroups.reduce(
+    (sum, group) => sum + group.applications.length,
+    0,
+  )
 
   const totals = categories.reduce(
     (acc, item) => ({
@@ -111,7 +131,9 @@ export default async function AdminPage() {
                     {totals.entries} {totals.entries === 1 ? "entry" : "entries"}{" "}
                     across {VOTING_CATEGORIES.length} categories ·{" "}
                     {totals.pending} awaiting approval · {totals.votes}{" "}
-                    {totals.votes === 1 ? "vote" : "votes"} cast.
+                    {totals.votes === 1 ? "vote" : "votes"} cast ·{" "}
+                    {totalApplications}{" "}
+                    {totalApplications === 1 ? "application" : "applications"}.
                   </p>
                 </div>
 
@@ -145,7 +167,13 @@ export default async function AdminPage() {
                 </div>
               </div>
 
-              <div className="mt-8 flex flex-col gap-5">
+              <h2
+                className="aw-font-heading mt-10 text-lg font-extrabold uppercase tracking-[0.16em]"
+                style={{ color: "var(--aw-criteria-title)" }}
+              >
+                People&apos;s Choice Voting
+              </h2>
+              <div className="mt-4 flex flex-col gap-5">
                 {categories.map(({ category, entries, totalVotes }) => (
                   <AdminCategory
                     key={category.slug}
@@ -153,6 +181,40 @@ export default async function AdminPage() {
                     title={category.title}
                     entries={entries}
                     totalVotes={totalVotes}
+                  />
+                ))}
+              </div>
+
+              <div className="mt-12 flex flex-wrap items-end justify-between gap-3">
+                <h2
+                  className="aw-font-heading text-lg font-extrabold uppercase tracking-[0.16em]"
+                  style={{ color: "var(--aw-criteria-title)" }}
+                >
+                  Award Applications
+                </h2>
+                <p
+                  className="aw-font-heading text-xs font-bold uppercase tracking-[0.18em]"
+                  style={{ color: "var(--aw-criteria-eyebrow)" }}
+                >
+                  {totalApplications}{" "}
+                  {totalApplications === 1 ? "application" : "applications"} ·{" "}
+                  {APPLICATION_AWARDS.length} awards
+                </p>
+              </div>
+              <p
+                className="mt-3 max-w-2xl text-sm leading-relaxed"
+                style={{ color: "var(--aw-body)" }}
+              >
+                Internally-judged awards. These collect written applications for
+                the judging panel and are never shown publicly or voted on.
+              </p>
+              <div className="mt-4 flex flex-col gap-5">
+                {applicationGroups.map(({ award, applications }) => (
+                  <AdminApplications
+                    key={award.slug}
+                    awardSlug={award.slug}
+                    title={award.title}
+                    applications={applications}
                   />
                 ))}
               </div>

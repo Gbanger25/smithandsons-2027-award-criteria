@@ -12,11 +12,13 @@ import {
 } from "@/lib/admin-auth"
 import {
   type EntryStatus,
+  deleteApplication,
   deleteEntry,
+  getApplications,
   getCategoryData,
   setEntryStatus,
 } from "@/lib/entries"
-import { isVotingCategory } from "@/lib/voting"
+import { isApplicationAward, isVotingCategory } from "@/lib/voting"
 
 export async function login(formData: FormData): Promise<ActionResult> {
   const submitted = String(formData.get("passcode") ?? "")
@@ -99,4 +101,39 @@ export async function removeEntry(formData: FormData): Promise<ActionResult> {
   revalidatePath("/admin")
   revalidatePath(`/vote/${categorySlug}`)
   return { ok: true, message: "Entry deleted." }
+}
+
+export async function removeApplication(
+  formData: FormData,
+): Promise<ActionResult> {
+  if (!(await isAdmin())) {
+    return { ok: false, error: "Not signed in." }
+  }
+
+  const awardSlug = String(formData.get("awardSlug") ?? "")
+  const sk = String(formData.get("sk") ?? "")
+
+  if (!isApplicationAward(awardSlug) || !sk) {
+    return { ok: false, error: "Unknown application." }
+  }
+
+  try {
+    // Clean up any uploaded photos so deleting doesn't orphan blobs.
+    const applications = await getApplications(awardSlug)
+    const application = applications.find((item) => item.sk === sk)
+    const urls = application?.images.map((image) => image.url) ?? []
+    if (urls.length > 0) {
+      await del(urls).catch((error) => {
+        console.log("[v0] Blob cleanup failed:", error)
+      })
+    }
+
+    await deleteApplication({ awardSlug, sk })
+  } catch (error) {
+    console.log("[v0] Application delete failed:", error)
+    return { ok: false, error: "Couldn't delete that application." }
+  }
+
+  revalidatePath("/admin")
+  return { ok: true, message: "Application deleted." }
 }

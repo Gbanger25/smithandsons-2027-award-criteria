@@ -292,3 +292,135 @@ export async function deleteEntry(params: {
     }),
   )
 }
+
+/* ------------------------------------------------------------------ *
+ * Applications
+ *
+ * The internally-judged awards (Individual Community Service Award,
+ * Franchisee of the Year, etc.) don't feed a public ballot — they collect
+ * written applications for the judging panel. They live in their own
+ * partition per award and are never voted on or shown publicly.
+ * ------------------------------------------------------------------ */
+
+const APP_PREFIX = "APP#"
+
+function applicationPk(slug: string): string {
+  return `APPLICATION#${slug}`
+}
+
+function applicationSk(createdAt: string, id: string): string {
+  return `${APP_PREFIX}${createdAt}#${id}`
+}
+
+export type Application = {
+  id: string
+  awardSlug: string
+  /** Full award title, stored so the admin list reads well without a lookup. */
+  awardTitle: string
+  office: string
+  state: string
+  /** Long-form application text written against the award criteria. */
+  details: string
+  images: EntryImage[]
+  createdAt: string
+  /** Sort key — needed to address the item for deletion. */
+  sk: string
+}
+
+function toApplication(item: RawItem): Application {
+  return {
+    id: String(item.id ?? ""),
+    awardSlug: String(item.awardSlug ?? ""),
+    awardTitle: String(item.awardTitle ?? ""),
+    office: String(item.office ?? ""),
+    state: String(item.state ?? ""),
+    details: String(item.details ?? ""),
+    images: Array.isArray(item.images) ? (item.images as EntryImage[]) : [],
+    createdAt: String(item.createdAt ?? ""),
+    sk: String(item[SORT_KEY] ?? ""),
+  }
+}
+
+export type CreateApplicationInput = {
+  awardSlug: string
+  awardTitle: string
+  office: string
+  state: string
+  details: string
+  images: EntryImage[]
+}
+
+export async function createApplication(
+  input: CreateApplicationInput,
+): Promise<Application> {
+  const createdAt = new Date().toISOString()
+  const id = crypto.randomUUID()
+  const sk = applicationSk(createdAt, id)
+
+  const item = {
+    ...key(applicationPk(input.awardSlug), sk),
+    type: "application",
+    id,
+    awardSlug: input.awardSlug,
+    awardTitle: input.awardTitle,
+    office: input.office,
+    state: input.state,
+    details: input.details,
+    images: input.images,
+    createdAt,
+  }
+
+  await getDocClient().send(
+    new PutCommand({ TableName: TABLE_NAME, Item: item }),
+  )
+
+  return { ...item, sk }
+}
+
+/** Every application submitted for one award, newest first. */
+export async function getApplications(slug: string): Promise<Application[]> {
+  if (!isConfigured()) {
+    console.log("[v0] DynamoDB env vars missing — returning no applications.")
+    return []
+  }
+
+  const client = getDocClient()
+  const applications: Application[] = []
+  let startKey: Record<string, unknown> | undefined
+
+  do {
+    const result = await client.send(
+      new QueryCommand({
+        TableName: TABLE_NAME,
+        KeyConditionExpression: "#pk = :pk",
+        ExpressionAttributeNames: { "#pk": PARTITION_KEY },
+        ExpressionAttributeValues: { ":pk": applicationPk(slug) },
+        ExclusiveStartKey: startKey,
+      }),
+    )
+
+    for (const item of result.Items ?? []) {
+      const sk = String((item as RawItem)[SORT_KEY] ?? "")
+      if (sk.startsWith(APP_PREFIX)) {
+        applications.push(toApplication(item as RawItem))
+      }
+    }
+
+    startKey = result.LastEvaluatedKey as Record<string, unknown> | undefined
+  } while (startKey)
+
+  // Sort key embeds createdAt ascending — reverse so newest applications lead.
+  return applications.reverse()
+}
+
+export async function deleteApplication(params: {
+  awardSlug: string
+  sk: string
+}): Promise<void> {
+  await getDocClient().send(
+    new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: key(applicationPk(params.awardSlug), params.sk),
+    }),
+  )
+}

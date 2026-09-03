@@ -1,4 +1,4 @@
-import { getAward } from "@/lib/awards"
+import { AWARDS, getAward } from "@/lib/awards"
 
 /**
  * The nine "People's Choice" categories that the network votes on. Everything
@@ -72,6 +72,27 @@ export function getVotingCategory(slug: string): VotingCategory | undefined {
 }
 
 export const VOTING_REGIONS: VotingRegion[] = ["Australia", "New Zealand"]
+
+/* ------------------------------------------------------------------ *
+ * Application awards
+ *
+ * Everything that shows a form but isn't one of the nine People's Choice
+ * categories is an internally-judged award. These collect written
+ * applications (stored, but never voted on) rather than ballot entries.
+ * ------------------------------------------------------------------ */
+
+export type ApplicationAward = {
+  slug: string
+  title: string
+}
+
+export const APPLICATION_AWARDS: ApplicationAward[] = AWARDS.filter(
+  (award) => award.needsForm && !isVotingCategory(award.slug),
+).map((award) => ({ slug: award.slug, title: award.title }))
+
+export function isApplicationAward(slug: string): boolean {
+  return APPLICATION_AWARDS.some((award) => award.slug === slug)
+}
 
 /* ------------------------------------------------------------------ *
  * Phase
