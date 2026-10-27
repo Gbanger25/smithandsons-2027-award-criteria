@@ -1,4 +1,5 @@
 import "server-only"
+import { officeKey } from "@/lib/upload-paths"
 
 import {
   DeleteCommand,
@@ -71,13 +72,7 @@ function categoryPk(slug: string): string {
   return `CATEGORY#${slug}`
 }
 
-/**
- * Offices are picked from a fixed list, but normalising guards against a
- * stray case or spacing difference creating a second ballot for one office.
- */
-export function officeKey(office: string): string {
-  return office.trim().toLowerCase().replace(/\s+/g, "-")
-}
+export { officeKey }
 
 function entrySk(createdAt: string, id: string): string {
   return `${ENTRY_PREFIX}${createdAt}#${id}`

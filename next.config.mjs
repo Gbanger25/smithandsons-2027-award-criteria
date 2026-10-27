@@ -13,6 +13,7 @@ const nextConfig = {
     '/vote/**': ['./public/offices.txt'],
     '/awards/**': ['./public/offices.txt'],
     '/admin': ['./public/offices.txt'],
+    '/api/blob-upload': ['./public/offices.txt'],
   },
   async headers() {
     return [

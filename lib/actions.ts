@@ -1,7 +1,6 @@
 "use server"
 
 import { revalidatePath } from "next/cache"
-import { put } from "@vercel/blob"
 
 import {
   type EntryImage,
@@ -12,6 +11,11 @@ import {
   officeKey,
 } from "@/lib/entries"
 import { rememberOffice, resolveOffice } from "@/lib/offices"
+import {
+  MAX_UPLOAD_FILES,
+  type UploadKind,
+  uploadFolder,
+} from "@/lib/upload-paths"
 import { STATES, getAward } from "@/lib/awards"
 import {
   ENTRIES_OPEN,
@@ -25,10 +29,71 @@ export type ActionResult = { ok: true; message: string } | {
   error: string
 }
 
-const MAX_FILES = 15
-const MAX_FILE_BYTES = 15 * 1024 * 1024
-const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/gif"]
 const MAX_DETAILS = 8000
+
+function blobStoreHost(): string | null {
+  // Read-write tokens look like vercel_blob_rw_<storeId>_<secret>.
+  const match = /^vercel_blob_rw_([a-z0-9]+)_/i.exec(
+    process.env.BLOB_READ_WRITE_TOKEN ?? "",
+  )
+  return match ? `${match[1].toLowerCase()}.public.blob.vercel-storage.com` : null
+}
+
+/**
+ * Photos are uploaded straight from the browser to Vercel Blob, so the action
+ * only receives URLs. Accept them only if they point at this store and at the
+ * folder for this award and office.
+ */
+function readUploadedImages(
+  formData: FormData,
+  kind: UploadKind,
+  slug: string,
+  office: string,
+): { ok: true; images: EntryImage[] } | { ok: false; error: string } {
+  const urls = formData.getAll("imageUrl").map(String)
+  const names = formData.getAll("imageName").map(String)
+
+  if (urls.length > MAX_UPLOAD_FILES) {
+    return {
+      ok: false,
+      error: `Please attach no more than ${MAX_UPLOAD_FILES} images.`,
+    }
+  }
+  if (names.length !== urls.length) {
+    return { ok: false, error: "We couldn't upload your images. Please try again." }
+  }
+
+  const host = blobStoreHost()
+  const folder = `/${uploadFolder(kind, slug, office)}`
+  const images: EntryImage[] = []
+
+  for (let index = 0; index < urls.length; index++) {
+    let url: URL
+    let pathname: string
+    try {
+      url = new URL(urls[index])
+      pathname = decodeURIComponent(url.pathname)
+    } catch {
+      return { ok: false, error: "One of your images didn't upload correctly." }
+    }
+    if (
+      !host ||
+      url.protocol !== "https:" ||
+      url.hostname !== host ||
+      url.search ||
+      url.hash ||
+      !pathname.startsWith(folder) ||
+      pathname.slice(folder.length).includes("/") ||
+      pathname.includes("..")
+    ) {
+      return { ok: false, error: "One of your images didn't upload correctly." }
+    }
+    const name = names[index].trim().slice(0, 200) || "photo"
+    images.push({ url: url.toString(), name })
+  }
+
+  return { ok: true, images }
+}
 
 /* ------------------------------------------------------------------ *
  * Entry submission
@@ -81,43 +146,11 @@ export async function submitEntry(
     return { ok: false, error: "Application details are too long." }
   }
 
-  const files = formData
-    .getAll("files")
-    .filter((value): value is File => value instanceof File && value.size > 0)
-
-  if (files.length > MAX_FILES) {
-    return { ok: false, error: `Please attach no more than ${MAX_FILES} images.` }
+  const uploaded = readUploadedImages(formData, "entries", categorySlug, office)
+  if (!uploaded.ok) {
+    return { ok: false, error: uploaded.error }
   }
-
-  for (const file of files) {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return { ok: false, error: `"${file.name}" is not a jpg, png or gif.` }
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      return { ok: false, error: `"${file.name}" is larger than 15MB.` }
-    }
-  }
-
-  let images: EntryImage[] = []
-
-  try {
-    images = await Promise.all(
-      files.map(async (file) => {
-        const blob = await put(
-          `entries/${categorySlug}/${officeKey(office)}/${file.name}`,
-          file,
-          { access: "public", addRandomSuffix: true },
-        )
-        return { url: blob.url, name: file.name }
-      }),
-    )
-  } catch (error) {
-    console.log("[v0] Entry image upload failed:", error)
-    return {
-      ok: false,
-      error: "We couldn't upload your images. Please try again.",
-    }
-  }
+  const images = uploaded.images
 
   try {
     await createEntry({
@@ -187,43 +220,11 @@ export async function submitApplication(
     return { ok: false, error: "Application details are too long." }
   }
 
-  const files = formData
-    .getAll("files")
-    .filter((value): value is File => value instanceof File && value.size > 0)
-
-  if (files.length > MAX_FILES) {
-    return { ok: false, error: `Please attach no more than ${MAX_FILES} images.` }
+  const uploaded = readUploadedImages(formData, "applications", awardSlug, office)
+  if (!uploaded.ok) {
+    return { ok: false, error: uploaded.error }
   }
-
-  for (const file of files) {
-    if (!ALLOWED_TYPES.includes(file.type)) {
-      return { ok: false, error: `"${file.name}" is not a jpg, png or gif.` }
-    }
-    if (file.size > MAX_FILE_BYTES) {
-      return { ok: false, error: `"${file.name}" is larger than 15MB.` }
-    }
-  }
-
-  let images: EntryImage[] = []
-
-  try {
-    images = await Promise.all(
-      files.map(async (file) => {
-        const blob = await put(
-          `applications/${awardSlug}/${officeKey(office)}/${file.name}`,
-          file,
-          { access: "public", addRandomSuffix: true },
-        )
-        return { url: blob.url, name: file.name }
-      }),
-    )
-  } catch (error) {
-    console.log("[v0] Application image upload failed:", error)
-    return {
-      ok: false,
-      error: "We couldn't upload your images. Please try again.",
-    }
-  }
+  const images = uploaded.images
 
   try {
     await createApplication({
