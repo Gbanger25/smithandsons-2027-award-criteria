@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react"
 import { upload } from "@vercel/blob/client"
-import { Loader2 } from "lucide-react"
+import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react"
 
 import { submitApplication, submitEntry } from "@/lib/actions"
 import { STATES } from "@/lib/awards"
@@ -67,6 +67,13 @@ export function ApplyForm({
   const [uploading, setUploading] = useState<Progress | null>(null)
   const optimiseRun = useRef(0)
   const formRef = useRef<HTMLFormElement>(null)
+  const feedbackRef = useRef<HTMLDivElement>(null)
+
+  // On a phone the message lands below the fold, so bring it into view.
+  useEffect(() => {
+    if (!error && !submitted) return
+    feedbackRef.current?.scrollIntoView({ behavior: "smooth", block: "center" })
+  }, [error, submitted])
 
   const storesEntry = Boolean(categorySlug)
   const storesApplication = Boolean(awardSlug)
@@ -408,23 +415,37 @@ export function ApplyForm({
         </button>
 
         {submitted && !error ? (
-          <p
+          <div
+            ref={feedbackRef}
             role="status"
-            className="text-sm font-medium"
-            style={{ color: "var(--aw-apply-heading)" }}
+            className="aw-font-body flex w-full scroll-mt-6 items-start gap-3 px-4 py-3 text-sm font-bold leading-relaxed"
+            style={{
+              backgroundColor: "#ffffff",
+              color: "#0c5a4f",
+              borderRadius: "var(--aw-radius)",
+            }}
           >
-            {message ?? "Thanks — your application has been recorded."}
-          </p>
+            <CheckCircle2 className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <p className="min-w-0 flex-1 break-words">
+              {message ?? "Thanks — your application has been recorded."}
+            </p>
+          </div>
         ) : null}
 
         {error ? (
-          <p
+          <div
+            ref={feedbackRef}
             role="alert"
-            className="text-sm font-semibold"
-            style={{ color: "var(--aw-note-text)" }}
+            className="aw-font-body flex w-full scroll-mt-6 items-start gap-3 px-4 py-3 text-sm font-bold leading-relaxed"
+            style={{
+              backgroundColor: "var(--aw-form-error-bg)",
+              color: "var(--aw-form-error-text)",
+              borderRadius: "var(--aw-radius)",
+            }}
           >
-            {error}
-          </p>
+            <AlertTriangle className="mt-0.5 size-4 shrink-0" aria-hidden="true" />
+            <p className="min-w-0 flex-1 break-words">{error}</p>
+          </div>
         ) : null}
       </div>
     </form>
