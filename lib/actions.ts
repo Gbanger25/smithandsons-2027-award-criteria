@@ -60,33 +60,73 @@ function readUploadedImages(
     }
   }
   if (names.length !== urls.length) {
-    return { ok: false, error: "We couldn't upload your images. Please try again." }
+    console.log(
+      "[v0] Image check failed:",
+      `name/url count mismatch (${names.length} names, ${urls.length} urls)`,
+      urls.join(", "),
+    )
+    return {
+      ok: false,
+      error: `Your image details were incomplete (${names.length} names for ${urls.length} images). Please try again.`,
+    }
   }
 
   const host = blobStoreHost()
+  if (!host) {
+    console.log("[v0] Image check failed:", "blob store host not configured", "")
+    return {
+      ok: false,
+      error: "Image storage isn't configured on the server, so your images couldn't be checked. Please contact the awards team.",
+    }
+  }
+
   const folder = `/${uploadFolder(kind, slug, office)}`
   const images: EntryImage[] = []
 
   for (let index = 0; index < urls.length; index++) {
+    const position = `image ${index + 1} of ${urls.length}`
+    const reject = (reason: string, detail: string) => {
+      console.log("[v0] Image check failed:", reason, urls[index])
+      return {
+        ok: false as const,
+        error: `One of your images didn't upload correctly (${position}): ${detail}. Please try again.`,
+      }
+    }
+
     let url: URL
     let pathname: string
     try {
       url = new URL(urls[index])
       pathname = decodeURIComponent(url.pathname)
     } catch {
-      return { ok: false, error: "One of your images didn't upload correctly." }
+      return reject("unparseable url", "the upload address was invalid")
     }
-    if (
-      !host ||
-      url.protocol !== "https:" ||
-      url.hostname !== host ||
-      url.search ||
-      url.hash ||
-      !pathname.startsWith(folder) ||
-      pathname.slice(folder.length).includes("/") ||
-      pathname.includes("..")
-    ) {
-      return { ok: false, error: "One of your images didn't upload correctly." }
+    if (url.protocol !== "https:") {
+      return reject("not https", "the upload address wasn't secure")
+    }
+    if (url.hostname !== host) {
+      return reject(
+        `wrong host (expected ${host}, got ${url.hostname})`,
+        "it was stored in the wrong place",
+      )
+    }
+    if (url.search || url.hash) {
+      return reject("url has query or hash", "the upload address was altered")
+    }
+    if (pathname.includes("..")) {
+      return reject("path contains ..", "the file path was invalid")
+    }
+    if (!pathname.startsWith(folder)) {
+      return reject(
+        `outside folder (expected ${folder}, got ${pathname})`,
+        "it was filed under a different award or office",
+      )
+    }
+    if (pathname.slice(folder.length).includes("/")) {
+      return reject(
+        `nested path under ${folder} (got ${pathname})`,
+        "the file path was invalid",
+      )
     }
     const name = names[index].trim().slice(0, 200) || "photo"
     images.push({ url: url.toString(), name })
@@ -165,7 +205,8 @@ export async function submitEntry(
     console.log("[v0] Entry save failed:", error)
     return {
       ok: false,
-      error: "We couldn't save your entry. Please try again.",
+      error:
+        "Your images uploaded, but we couldn't save your entry to the database. Please try again.",
     }
   }
 
@@ -239,7 +280,8 @@ export async function submitApplication(
     console.log("[v0] Application save failed:", error)
     return {
       ok: false,
-      error: "We couldn't save your application. Please try again.",
+      error:
+        "Your images uploaded, but we couldn't save your application to the database. Please try again.",
     }
   }
 

@@ -80,6 +80,9 @@ export type AwardTheme = {
     buttonBg: string
     buttonHover: string
     buttonFg: string
+    /** Form error box — must stay readable on top of applyBg. */
+    formErrorBg: string
+    formErrorText: string
     footerBg: string
     footerFg: string
   }
@@ -139,6 +142,10 @@ export const queenstown2027: AwardTheme = {
     buttonBg: "#ffffff",
     buttonHover: "#ffe000",
     buttonFg: "#0c5a4f",
+    // Hi-vis yellow with navy ink: the band is dark green, so the error needs
+    // its own surface to be readable.
+    formErrorBg: "#ffe000",
+    formErrorText: "#071727",
     // Footer continues the apply band above it, so the page ends on one colour.
     footerBg: "#12443b",
     footerFg: "rgba(255, 255, 255, 0.72)",
@@ -193,6 +200,8 @@ export const smithClassic: AwardTheme = {
     buttonBg: "#8fba1f",
     buttonHover: "#73a31b",
     buttonFg: "#ffffff",
+    formErrorBg: "#fdecea",
+    formErrorText: "#8a1c1c",
     footerBg: "#f2f2f2",
     footerFg: "#737373",
   },
@@ -247,6 +256,8 @@ export function themeVars(theme: AwardTheme): CSSProperties {
     "--aw-file-fg": c.fileFg,
     "--aw-button-bg": c.buttonBg,
     "--aw-button-hover": c.buttonHover,
+    "--aw-form-error-bg": c.formErrorBg,
+    "--aw-form-error-text": c.formErrorText,
     "--aw-button-fg": c.buttonFg,
     "--aw-footer-bg": c.footerBg,
     "--aw-footer-fg": c.footerFg,
