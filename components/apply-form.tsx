@@ -20,6 +20,13 @@ import {
 const OFFICE_LIST_URL = "/offices.txt"
 const UPLOAD_CONCURRENCY = 3
 
+// Mirror the server-side limits in lib/actions.ts so bad input is caught
+// before any photo is uploaded.
+const MIN_TITLE = 3
+const MAX_TITLE = 120
+const MIN_DETAILS = 20
+const MAX_DETAILS = 8000
+
 type Progress = { done: number; total: number }
 
 const fieldClass =
@@ -65,6 +72,7 @@ export function ApplyForm({
   const [photos, setPhotos] = useState<PreparedPhoto[]>([])
   const [optimising, setOptimising] = useState<Progress | null>(null)
   const [uploading, setUploading] = useState<Progress | null>(null)
+  const [detailsLength, setDetailsLength] = useState(0)
   const optimiseRun = useRef(0)
   const formRef = useRef<HTMLFormElement>(null)
   const feedbackRef = useRef<HTMLDivElement>(null)
@@ -167,6 +175,40 @@ export function ApplyForm({
     return results
   }
 
+  function validateFields(formData: FormData): string | null {
+    const state = String(formData.get("state") ?? "")
+    if (!(STATES as readonly string[]).includes(state)) {
+      return "Please choose a valid state or country."
+    }
+
+    const office = String(formData.get("office") ?? "")
+    if (!office || !offices.includes(office)) {
+      return "Please choose your office from the list."
+    }
+
+    if (storesEntry) {
+      const projectTitle = String(formData.get("projectTitle") ?? "").trim()
+      if (projectTitle.length < MIN_TITLE) {
+        return "Please give the project a name."
+      }
+      if (projectTitle.length > MAX_TITLE) {
+        return "Project name must be under 120 characters."
+      }
+    }
+
+    const details = String(formData.get("details") ?? "").trim()
+    if (details.length < MIN_DETAILS) {
+      return storesEntry
+        ? "Please describe the project against the criteria above."
+        : "Please describe the nomination against the criteria above."
+    }
+    if (details.length > MAX_DETAILS) {
+      return "Application details are too long."
+    }
+
+    return null
+  }
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
@@ -187,6 +229,12 @@ export function ApplyForm({
     const formData = new FormData(form)
     formData.delete("files")
     const office = String(formData.get("office") ?? "")
+
+    const validationError = validateFields(formData)
+    if (validationError) {
+      setError(validationError)
+      return
+    }
 
     setBusy(true)
     try {
@@ -212,6 +260,7 @@ export function ApplyForm({
         setSubmitted(true)
         form.reset()
         setPhotos([])
+        setDetailsLength(0)
       } else {
         setError(result.error)
       }
@@ -307,7 +356,8 @@ export function ApplyForm({
             name="projectTitle"
             type="text"
             required
-            maxLength={120}
+            minLength={MIN_TITLE}
+            maxLength={MAX_TITLE}
             className={`${fieldClass} disabled:cursor-not-allowed disabled:opacity-70`}
             style={fieldStyle}
             placeholder="e.g. Hillside Kitchen Renovation"
@@ -327,10 +377,26 @@ export function ApplyForm({
           name="details"
           rows={7}
           required
+          minLength={MIN_DETAILS}
+          maxLength={MAX_DETAILS}
+          aria-describedby="details-count"
+          onChange={(event) =>
+            setDetailsLength(event.currentTarget.value.trim().length)
+          }
           className={`${fieldClass} resize-y leading-relaxed disabled:cursor-not-allowed disabled:opacity-70`}
           style={fieldStyle}
           placeholder="Tell us about the nomination against the criteria above."
         />
+        <p
+          id="details-count"
+          aria-live="polite"
+          className="mt-2 text-xs"
+          style={{ color: "var(--aw-apply-body)" }}
+        >
+          {detailsLength >= MIN_DETAILS
+            ? `✓ ${MIN_DETAILS}+ characters`
+            : `At least ${MIN_DETAILS} characters (${detailsLength} so far)`}
+        </p>
       </div>
 
       <div>
