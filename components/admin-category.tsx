@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useTransition } from "react"
-import { Check, EyeOff, Loader2, Trash2 } from "lucide-react"
+import { Check, ChevronDown, EyeOff, Loader2, Trash2 } from "lucide-react"
 
 import { moderateEntry, removeEntry } from "@/lib/admin-actions"
 import type { EntryStatus, Nominee } from "@/lib/entries"
@@ -33,6 +33,29 @@ function StatusChip({ status }: { status: EntryStatus }) {
   )
 }
 
+const SECONDARY_BUTTON =
+  "aw-font-heading inline-flex items-center gap-1.5 border px-3.5 py-2 text-[0.65rem] font-bold uppercase tracking-[0.14em] disabled:opacity-60"
+
+const SECONDARY_BUTTON_STYLE = {
+  borderColor: "var(--aw-criteria-glass-border)",
+  color: "var(--aw-body)",
+  borderRadius: "var(--aw-button-radius)",
+} as const
+
+function formatSubmitted(iso: string): string {
+  if (!iso) return ""
+  const date = new Date(iso)
+  if (Number.isNaN(date.getTime())) return ""
+  return `${date.toLocaleString("en-AU", {
+    timeZone: "Australia/Brisbane",
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+  })} (Brisbane time)`
+}
+
 export function AdminCategory({
   categorySlug,
   title,
@@ -46,6 +69,7 @@ export function AdminCategory({
 }) {
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [openIds, setOpenIds] = useState<Set<string>>(() => new Set())
   const [, startTransition] = useTransition()
 
   function run(action: () => Promise<{ ok: boolean; error?: string }>, id: string) {
@@ -84,6 +108,64 @@ export function AdminCategory({
       const result = await removeEntry(formData)
       return result.ok ? { ok: true } : { ok: false, error: result.error }
     }, entry.id)
+  }
+
+  function toggleOpen(id: string) {
+    setOpenIds((current) => {
+      const next = new Set(current)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function renderDecisionButtons(entry: Nominee, isBusy: boolean) {
+    return (
+      <>
+        {entry.status !== "approved" ? (
+          <button
+            type="button"
+            onClick={() => setStatus(entry, "approved")}
+            disabled={isBusy}
+            className="aw-font-heading inline-flex items-center gap-1.5 px-3.5 py-2 text-[0.65rem] font-bold uppercase tracking-[0.14em] transition-colors hover:bg-[var(--aw-button-hover)] disabled:opacity-60"
+            style={{
+              backgroundColor: "var(--aw-button-bg)",
+              color: "var(--aw-button-fg)",
+              borderRadius: "var(--aw-button-radius)",
+            }}
+          >
+            <Check className="size-3 shrink-0" aria-hidden="true" />
+            Approve
+          </button>
+        ) : (
+          <button
+            type="button"
+            onClick={() => setStatus(entry, "hidden")}
+            disabled={isBusy}
+            className={SECONDARY_BUTTON}
+            style={SECONDARY_BUTTON_STYLE}
+          >
+            <EyeOff className="size-3 shrink-0" aria-hidden="true" />
+            Hide
+          </button>
+        )}
+
+        <button
+          type="button"
+          onClick={() => destroy(entry)}
+          disabled={isBusy}
+          aria-label={`Delete ${entry.projectTitle}`}
+          className="inline-flex items-center justify-center border p-2 disabled:opacity-60"
+          style={{
+            borderColor: "var(--aw-note-border)",
+            color: "var(--aw-note-text)",
+            borderRadius: "var(--aw-button-radius)",
+          }}
+        >
+          <Trash2 className="size-3.5 shrink-0" aria-hidden="true" />
+        </button>
+      </>
+    )
   }
 
   const leaderVotes = entries[0]?.voteCount ?? 0
@@ -134,18 +216,22 @@ export function AdminCategory({
         <ul className="mt-5 flex flex-col gap-3">
           {entries.map((entry) => {
             const isBusy = busy === entry.id
+            const isOpen = openIds.has(entry.id)
+            const panelId = `entry-panel-${entry.id}`
+            const submitted = formatSubmitted(entry.createdAt)
             const share =
               totalVotes > 0 ? Math.round((entry.voteCount ?? 0) / totalVotes * 100) : 0
 
             return (
               <li
                 key={entry.id}
-                className="flex flex-col gap-3 border px-4 py-4 md:flex-row md:items-center"
+                className="flex flex-col border px-4 py-4"
                 style={{
                   borderColor: "var(--aw-criteria-glass-border)",
                   borderRadius: "var(--aw-radius)",
                 }}
               >
+                <div className="flex flex-col gap-3 md:flex-row md:items-center">
                 {entry.images[0] ? (
                   <img
                     src={entry.images[0].url}
@@ -208,53 +294,125 @@ export function AdminCategory({
                     />
                   ) : null}
 
-                  {entry.status !== "approved" ? (
-                    <button
-                      type="button"
-                      onClick={() => setStatus(entry, "approved")}
-                      disabled={isBusy}
-                      className="aw-font-heading inline-flex items-center gap-1.5 px-3.5 py-2 text-[0.65rem] font-bold uppercase tracking-[0.14em] transition-colors hover:bg-[var(--aw-button-hover)] disabled:opacity-60"
-                      style={{
-                        backgroundColor: "var(--aw-button-bg)",
-                        color: "var(--aw-button-fg)",
-                        borderRadius: "var(--aw-button-radius)",
-                      }}
-                    >
-                      <Check className="size-3 shrink-0" aria-hidden="true" />
-                      Approve
-                    </button>
-                  ) : (
-                    <button
-                      type="button"
-                      onClick={() => setStatus(entry, "hidden")}
-                      disabled={isBusy}
-                      className="aw-font-heading inline-flex items-center gap-1.5 border px-3.5 py-2 text-[0.65rem] font-bold uppercase tracking-[0.14em] disabled:opacity-60"
-                      style={{
-                        borderColor: "var(--aw-criteria-glass-border)",
-                        color: "var(--aw-body)",
-                        borderRadius: "var(--aw-button-radius)",
-                      }}
-                    >
-                      <EyeOff className="size-3 shrink-0" aria-hidden="true" />
-                      Hide
-                    </button>
-                  )}
-
                   <button
                     type="button"
-                    onClick={() => destroy(entry)}
-                    disabled={isBusy}
-                    aria-label={`Delete ${entry.projectTitle}`}
-                    className="inline-flex items-center justify-center border p-2 disabled:opacity-60"
-                    style={{
-                      borderColor: "var(--aw-note-border)",
-                      color: "var(--aw-note-text)",
-                      borderRadius: "var(--aw-button-radius)",
-                    }}
+                    onClick={() => toggleOpen(entry.id)}
+                    aria-expanded={isOpen}
+                    aria-controls={panelId}
+                    className={SECONDARY_BUTTON}
+                    style={SECONDARY_BUTTON_STYLE}
                   >
-                    <Trash2 className="size-3.5 shrink-0" aria-hidden="true" />
+                    <ChevronDown
+                      className="size-3 shrink-0 transition-transform"
+                      style={{ transform: isOpen ? "rotate(180deg)" : "none" }}
+                      aria-hidden="true"
+                    />
+                    {isOpen ? "Close" : "View entry"}
                   </button>
+
+                  {renderDecisionButtons(entry, isBusy)}
                 </div>
+                </div>
+
+                {isOpen ? (
+                  <div
+                    id={panelId}
+                    className="mt-4 flex flex-col gap-5 border-t pt-4"
+                    style={{ borderColor: "var(--aw-criteria-glass-border)" }}
+                  >
+                    <div className="flex flex-col gap-1">
+                      <h3
+                        className="aw-font-heading text-base font-bold uppercase leading-snug tracking-wide text-pretty"
+                        style={{ color: "var(--aw-criteria-title)" }}
+                      >
+                        {entry.projectTitle}
+                      </h3>
+                      <p className="text-sm" style={{ color: "var(--aw-body)" }}>
+                        {entry.office} · {entry.state}
+                      </p>
+                      {submitted ? (
+                        <p className="text-xs" style={{ color: "var(--aw-body)" }}>
+                          Submitted {submitted}
+                        </p>
+                      ) : null}
+                    </div>
+
+                    <div className="flex flex-col gap-2">
+                      <h4
+                        className="aw-font-heading text-[0.65rem] font-bold uppercase tracking-[0.18em]"
+                        style={{ color: "var(--aw-criteria-eyebrow)" }}
+                      >
+                        Application details
+                      </h4>
+                      {entry.details ? (
+                        <p
+                          className="aw-font-body max-w-[70ch] whitespace-pre-wrap break-words text-sm leading-relaxed"
+                          style={{ color: "var(--aw-body)" }}
+                        >
+                          {entry.details}
+                        </p>
+                      ) : (
+                        <p className="text-sm italic" style={{ color: "var(--aw-body)" }}>
+                          No details provided.
+                        </p>
+                      )}
+                    </div>
+
+                    {entry.images.length > 0 ? (
+                      <div className="flex flex-col gap-2">
+                        <h4
+                          className="aw-font-heading text-[0.65rem] font-bold uppercase tracking-[0.18em]"
+                          style={{ color: "var(--aw-criteria-eyebrow)" }}
+                        >
+                          Photos ({entry.images.length})
+                        </h4>
+                        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+                          {entry.images.map((image, index) => (
+                            <li key={image.url} className="flex flex-col gap-1">
+                              <a
+                                href={image.url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="relative block overflow-hidden"
+                                style={{ borderRadius: "var(--aw-radius)" }}
+                              >
+                                <img
+                                  src={image.url || "/placeholder.svg"}
+                                  alt={image.name || `Photo ${index + 1} of ${entry.projectTitle}`}
+                                  className="aspect-[4/3] w-full object-cover"
+                                />
+                                {index === 0 ? (
+                                  <span
+                                    className="aw-font-heading absolute left-2 top-2 px-2 py-1 text-[0.6rem] font-bold uppercase tracking-[0.14em]"
+                                    style={{
+                                      backgroundColor: "var(--aw-button-bg)",
+                                      color: "var(--aw-button-fg)",
+                                      borderRadius: "var(--aw-radius)",
+                                    }}
+                                  >
+                                    Ballot cover
+                                  </span>
+                                ) : null}
+                                <span className="sr-only"> (opens full size in a new tab)</span>
+                              </a>
+                            </li>
+                          ))}
+                        </ul>
+                      </div>
+                    ) : null}
+
+                    <div className="flex flex-wrap items-center gap-2">
+                      {renderDecisionButtons(entry, isBusy)}
+                      {isBusy ? (
+                        <Loader2
+                          className="size-4 animate-spin"
+                          style={{ color: "var(--aw-criteria-eyebrow)" }}
+                          aria-label="Saving"
+                        />
+                      ) : null}
+                    </div>
+                  </div>
+                ) : null}
               </li>
             )
           })}
