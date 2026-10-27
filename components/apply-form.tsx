@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react"
 import { upload } from "@vercel/blob/client"
-import { AlertTriangle, CheckCircle2, Loader2 } from "lucide-react"
+import Link from "next/link"
+import { AlertTriangle, ArrowLeft, CheckCircle2, Loader2 } from "lucide-react"
 
 import { submitApplication, submitEntry } from "@/lib/actions"
 import { STATES } from "@/lib/awards"
@@ -496,6 +497,20 @@ export function ApplyForm({
               {message ?? "Thanks — your application has been recorded."}
             </p>
           </div>
+        ) : null}
+
+        {submitted && !error ? (
+          <Link
+            href="/"
+            className="group inline-flex w-full items-center justify-center gap-2 border border-white bg-transparent px-4 py-2 text-xs font-bold uppercase tracking-[0.2em] text-white transition-colors hover:border-[var(--aw-button-hover)] hover:text-[var(--aw-button-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white sm:w-fit"
+            style={{ borderRadius: "var(--aw-button-radius)" }}
+          >
+            <ArrowLeft
+              className="size-3.5 shrink-0 transition-transform group-hover:-translate-x-0.5"
+              aria-hidden="true"
+            />
+            Back to All Awards
+          </Link>
         ) : null}
 
         {error ? (
