@@ -98,22 +98,49 @@ export function isApplicationAward(slug: string): boolean {
  * Phase
  * ------------------------------------------------------------------ */
 
+/*
+ * Awards-cycle switches. Each is independent — flip them by hand, no dates and
+ * no database flag. Typed as `boolean` (not the literal) so every branch that
+ * reads them stays valid whichever way they're set.
+ */
+
 /**
- * Where the awards cycle currently sits. Flip this one constant to move the
- * whole site between phases — no dates, no database flag.
+ * When true, offices can submit People's Choice entries (and upload photos).
+ * When false, the entry forms reply "Entries for this award are closed".
+ */
+export const ENTRIES_OPEN: boolean = true
+
+/**
+ * When true, the ballot form is shown and votes are accepted. When false, the
+ * vote pages just present the nominees with neutral copy — no ballot form and
+ * no "voting closed" message.
+ */
+export const VOTING_OPEN: boolean = false
+
+/**
+ * Set to true once voting has finished, to show the "Voting has closed" copy
+ * until winners are announced at conference. Takes precedence over
+ * VOTING_OPEN, so the ballot also stops accepting votes.
+ */
+export const VOTING_CLOSED: boolean = false
+
+/**
+ * Which copy the vote pages show, derived from the switches above.
  *
- *   "entries" — offices submit projects; the ballot is not open yet.
- *   "voting"  — entries are locked; the network casts votes.
+ *   "entries" — before voting opens; neutral "Meet the nominees" copy.
+ *   "voting"  — the network casts votes.
  *   "closed"  — voting has finished; winners are announced at conference.
  */
 export type VotingPhase = "entries" | "voting" | "closed"
 
-/*
- * Typed as the full union (not the literal) so every phase comparison across
- * the app stays valid when this value is edited. Without the cast TypeScript
- * narrows to "voting" and flags the other branches as unreachable.
- */
-export const VOTING_PHASE = "voting" as VotingPhase
+export const VOTING_PHASE: VotingPhase = VOTING_CLOSED
+  ? "closed"
+  : VOTING_OPEN
+    ? "voting"
+    : "entries"
+
+/** True only while votes are actually being accepted. */
+export const BALLOT_OPEN = VOTING_PHASE === "voting"
 
 type PhaseCopy = {
   /** Short status chip, e.g. on the hub cards. */
@@ -153,6 +180,3 @@ const PHASE_COPY: Record<VotingPhase, PhaseCopy> = {
 export function phaseCopy(phase: VotingPhase = VOTING_PHASE): PhaseCopy {
   return PHASE_COPY[phase]
 }
-
-export const ENTRIES_OPEN = VOTING_PHASE === "entries"
-export const VOTING_OPEN = VOTING_PHASE === "voting"

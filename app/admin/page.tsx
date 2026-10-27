@@ -5,12 +5,14 @@ import { ArrowLeft, Download } from "lucide-react"
 import { AdminApplications } from "@/components/admin-applications"
 import { AdminCategory } from "@/components/admin-category"
 import { AdminLogin } from "@/components/admin-login"
+import { AdminReset } from "@/components/admin-reset"
 import { logout } from "@/lib/admin-actions"
 import { adminConfigured, isAdmin } from "@/lib/admin-auth"
 import { getApplications, getCategoryData, rankedEntries } from "@/lib/entries"
 import { ACTIVE_THEME, themeVars } from "@/lib/theme"
 import {
   APPLICATION_AWARDS,
+  ENTRIES_OPEN,
   VOTING_CATEGORIES,
   VOTING_PHASE,
   phaseCopy,
@@ -116,7 +118,13 @@ export default async function AdminPage() {
                     className="aw-font-heading text-xs font-bold uppercase tracking-[0.3em]"
                     style={{ color: "var(--aw-criteria-eyebrow)" }}
                   >
-                    {phaseCopy().badge} · Phase &ldquo;{VOTING_PHASE}&rdquo;
+                    {phaseCopy().badge} · Entries{" "}
+                    {ENTRIES_OPEN ? "open" : "closed"} · Voting{" "}
+                    {VOTING_PHASE === "voting"
+                      ? "open"
+                      : VOTING_PHASE === "closed"
+                        ? "closed"
+                        : "not yet open"}
                   </p>
                   <h1
                     className="aw-font-heading mt-3 text-3xl font-extrabold uppercase leading-[1.05] tracking-tight md:text-4xl"
@@ -217,6 +225,10 @@ export default async function AdminPage() {
                     applications={applications}
                   />
                 ))}
+              </div>
+
+              <div className="mt-12">
+                <AdminReset />
               </div>
             </>
           )}

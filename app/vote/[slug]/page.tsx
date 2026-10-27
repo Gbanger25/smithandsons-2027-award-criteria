@@ -11,7 +11,7 @@ import { getRememberedOffice, loadOffices } from "@/lib/offices"
 import { ACTIVE_THEME, themeVars } from "@/lib/theme"
 import {
   VOTING_CATEGORY_SLUGS,
-  VOTING_OPEN,
+  BALLOT_OPEN,
   getVotingCategory,
   phaseCopy,
 } from "@/lib/voting"
@@ -176,7 +176,7 @@ export default async function VoteCategoryPage({
                 categorySlug={category.slug}
                 nominees={nominees}
                 offices={offices}
-                votingOpen={VOTING_OPEN}
+                votingOpen={BALLOT_OPEN}
                 initialOffice={rememberedOffice ?? ""}
                 initialVotedFor={existingVote?.entryId ?? null}
               />

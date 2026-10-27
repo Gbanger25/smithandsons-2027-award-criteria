@@ -110,6 +110,9 @@ export function Ballot({
 
   return (
     <div className="flex flex-col gap-8">
+      {/* Outside the voting window the page only presents the nominees, so
+          the whole ballot form (office picker included) is left out. */}
+      {votingOpen ? (
       <div
         className="flex flex-col gap-5 border px-6 py-5 backdrop-blur-xl"
         style={{
@@ -211,6 +214,7 @@ export function Ballot({
           </div>
         ) : null}
       </div>
+      ) : null}
 
       {message ? (
         <p

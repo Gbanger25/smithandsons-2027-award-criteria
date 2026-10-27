@@ -2,6 +2,7 @@ import "server-only"
 import { officeKey } from "@/lib/upload-paths"
 
 import {
+  BatchWriteCommand,
   DeleteCommand,
   PutCommand,
   QueryCommand,
@@ -406,6 +407,88 @@ export async function getApplications(slug: string): Promise<Application[]> {
 
   // Sort key embeds createdAt ascending — reverse so newest applications lead.
   return applications.reverse()
+}
+
+/* ------------------------------------------------------------------ *
+ * Full reset
+ * ------------------------------------------------------------------ */
+
+type StoredItem = Record<string, unknown> & { images?: EntryImage[] }
+
+async function queryPartition(pk: string): Promise<StoredItem[]> {
+  const client = getDocClient()
+  const items: StoredItem[] = []
+  let startKey: Record<string, unknown> | undefined
+
+  do {
+    const result = await client.send(
+      new QueryCommand({
+        TableName: TABLE_NAME,
+        KeyConditionExpression: "#pk = :pk",
+        ExpressionAttributeNames: { "#pk": PARTITION_KEY },
+        ExpressionAttributeValues: { ":pk": pk },
+        ExclusiveStartKey: startKey,
+      }),
+    )
+    items.push(...((result.Items ?? []) as StoredItem[]))
+    startKey = result.LastEvaluatedKey as Record<string, unknown> | undefined
+  } while (startKey)
+
+  return items
+}
+
+/**
+ * Loads every entry, vote and application row across the given People's
+ * Choice categories and judged awards. Returned separately from the delete so
+ * the caller can remove Blob photos first and never orphan them.
+ */
+export async function loadAllAwardRows(params: {
+  categorySlugs: readonly string[]
+  awardSlugs: readonly string[]
+}): Promise<{ rows: StoredItem[]; imageUrls: string[] }> {
+  const partitions = [
+    ...params.categorySlugs.map(categoryPk),
+    ...params.awardSlugs.map(applicationPk),
+  ]
+  const rows = (await Promise.all(partitions.map(queryPartition))).flat()
+  const imageUrls = rows
+    .flatMap((row) => (Array.isArray(row.images) ? row.images : []))
+    .map((image) => image.url)
+    .filter(Boolean)
+  return { rows, imageUrls }
+}
+
+/** Deletes the given rows in batches of 25, retrying any unprocessed items. */
+export async function deleteRows(rows: StoredItem[]): Promise<number> {
+  const client = getDocClient()
+  let deleted = 0
+
+  for (let i = 0; i < rows.length; i += 25) {
+    let requests = rows.slice(i, i + 25).map((row) => ({
+      DeleteRequest: {
+        Key: { [PARTITION_KEY]: row[PARTITION_KEY], [SORT_KEY]: row[SORT_KEY] },
+      },
+    }))
+
+    for (let attempt = 0; requests.length > 0 && attempt < 5; attempt++) {
+      const result = await client.send(
+        new BatchWriteCommand({ RequestItems: { [TABLE_NAME]: requests } }),
+      )
+      const unprocessed = (result.UnprocessedItems?.[TABLE_NAME] ??
+        []) as typeof requests
+      deleted += requests.length - unprocessed.length
+      requests = unprocessed
+      if (requests.length > 0) {
+        await new Promise((resolve) => setTimeout(resolve, 200 * 2 ** attempt))
+      }
+    }
+
+    if (requests.length > 0) {
+      throw new Error(`${requests.length} rows could not be deleted.`)
+    }
+  }
+
+  return deleted
 }
 
 export async function deleteApplication(params: {
