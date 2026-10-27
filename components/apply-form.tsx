@@ -1,12 +1,26 @@
 "use client"
 
-import { useEffect, useRef, useState, useTransition } from "react"
+import { useEffect, useRef, useState } from "react"
+import { upload } from "@vercel/blob/client"
 import { Loader2 } from "lucide-react"
 
 import { submitApplication, submitEntry } from "@/lib/actions"
 import { STATES } from "@/lib/awards"
+import {
+  type PreparedPhoto,
+  formatMegabytes,
+  preparePhoto,
+} from "@/lib/resize-image"
+import {
+  MAX_UPLOAD_FILES,
+  safeFileName,
+  uploadFolder,
+} from "@/lib/upload-paths"
 
 const OFFICE_LIST_URL = "/offices.txt"
+const UPLOAD_CONCURRENCY = 3
+
+type Progress = { done: number; total: number }
 
 const fieldClass =
   "aw-font-body w-full appearance-none border px-4 py-3 text-sm outline-none transition-colors focus:border-[var(--aw-field-focus)] focus:ring-2 focus:ring-[var(--aw-field-focus)]/25"
@@ -47,7 +61,11 @@ export function ApplyForm({
   const [submitted, setSubmitted] = useState(false)
   const [message, setMessage] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [isPending, startTransition] = useTransition()
+  const [busy, setBusy] = useState(false)
+  const [photos, setPhotos] = useState<PreparedPhoto[]>([])
+  const [optimising, setOptimising] = useState<Progress | null>(null)
+  const [uploading, setUploading] = useState<Progress | null>(null)
+  const optimiseRun = useRef(0)
   const formRef = useRef<HTMLFormElement>(null)
 
   const storesEntry = Boolean(categorySlug)
@@ -83,7 +101,66 @@ export function ApplyForm({
     }
   }, [])
 
-  function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
+  async function handleFilesChange(event: React.ChangeEvent<HTMLInputElement>) {
+    const chosen = Array.from(event.currentTarget.files ?? [])
+    const runId = ++optimiseRun.current
+    setError(null)
+    setPhotos([])
+
+    if (chosen.length === 0) {
+      setOptimising(null)
+      return
+    }
+    if (chosen.length > MAX_UPLOAD_FILES) {
+      setOptimising(null)
+      setError(`Please attach no more than ${MAX_UPLOAD_FILES} images.`)
+      return
+    }
+
+    const prepared: PreparedPhoto[] = []
+    setOptimising({ done: 0, total: chosen.length })
+    // One at a time keeps peak memory low on phones.
+    for (const file of chosen) {
+      const photo = await preparePhoto(file)
+      if (runId !== optimiseRun.current) return
+      prepared.push(photo)
+      setPhotos([...prepared])
+      setOptimising({ done: prepared.length, total: chosen.length })
+    }
+    setOptimising(null)
+  }
+
+  async function uploadPhotos(office: string) {
+    const kind = storesEntry ? "entries" : "applications"
+    const slug = (storesEntry ? categorySlug : awardSlug) as string
+    const folder = uploadFolder(kind, slug, office)
+    const results: { url: string; name: string }[] = new Array(photos.length)
+    let next = 0
+    let done = 0
+    setUploading({ done: 0, total: photos.length })
+
+    async function worker() {
+      while (next < photos.length) {
+        const index = next++
+        const { file, originalName } = photos[index]
+        const blob = await upload(`${folder}${safeFileName(file.name)}`, file, {
+          access: "public",
+          handleUploadUrl: "/api/blob-upload",
+          clientPayload: JSON.stringify({ office }),
+          contentType: file.type,
+        })
+        results[index] = { url: blob.url, name: originalName }
+        setUploading({ done: ++done, total: photos.length })
+      }
+    }
+
+    await Promise.all(
+      Array.from({ length: Math.min(UPLOAD_CONCURRENCY, photos.length) }, worker),
+    )
+    return results
+  }
+
+  async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setError(null)
     setMessage(null)
@@ -94,10 +171,32 @@ export function ApplyForm({
       return
     }
 
+    if (optimising) {
+      setError("Please wait until your photos have finished optimising.")
+      return
+    }
+
     const form = event.currentTarget
     const formData = new FormData(form)
+    formData.delete("files")
+    const office = String(formData.get("office") ?? "")
 
-    startTransition(async () => {
+    setBusy(true)
+    try {
+      try {
+        const uploaded = await uploadPhotos(office)
+        for (const image of uploaded) {
+          formData.append("imageUrl", image.url)
+          formData.append("imageName", image.name)
+        }
+      } catch (uploadError) {
+        console.log("[v0] Photo upload failed:", uploadError)
+        setError("We couldn't upload your images. Please try again.")
+        return
+      } finally {
+        setUploading(null)
+      }
+
       const result = storesEntry
         ? await submitEntry(formData)
         : await submitApplication(formData)
@@ -105,11 +204,19 @@ export function ApplyForm({
         setMessage(result.message)
         setSubmitted(true)
         form.reset()
+        setPhotos([])
       } else {
         setError(result.error)
       }
-    })
+    } catch (submitError) {
+      console.log("[v0] Submission failed:", submitError)
+      setError("We couldn't save your entry. Please try again.")
+    } finally {
+      setBusy(false)
+    }
   }
+
+  const totalBytes = photos.reduce((sum, photo) => sum + photo.file.size, 0)
 
   return (
     <form
@@ -229,31 +336,71 @@ export function ApplyForm({
           type="file"
           multiple
           accept=".jpg,.jpeg,.png,.gif,image/jpeg,image/png,image/gif"
+          onChange={handleFilesChange}
+          disabled={busy}
+          aria-describedby="files-help files-status"
           className="aw-font-body w-full cursor-pointer border border-dashed px-4 py-3 text-sm file:mr-4 file:cursor-pointer file:rounded-[var(--aw-button-radius)] file:border-0 file:bg-[var(--aw-file-bg)] file:px-4 file:py-2 file:text-xs file:font-bold file:uppercase file:tracking-[0.12em] file:text-[var(--aw-file-fg)] disabled:cursor-not-allowed disabled:opacity-70"
           style={fieldStyle}
         />
-        <p className="mt-2 text-xs" style={{ color: "var(--aw-apply-body)" }}>
-          jpg, jpeg, png or gif. Maximum 15MB per file, 15 files total.
+        <p
+          id="files-help"
+          className="mt-2 text-xs"
+          style={{ color: "var(--aw-apply-body)" }}
+        >
+          {
+            "jpg, jpeg, png or gif. Up to 15 photos. Large photos are resized automatically before upload, so there's no need to shrink them first."
+          }
           {storesEntry
             ? " The first image is used as the ballot cover photo."
             : ""}
         </p>
+        <div
+          id="files-status"
+          aria-live="polite"
+          className="aw-font-body mt-3 flex flex-col gap-1 text-xs"
+          style={{ color: "var(--aw-apply-body)" }}
+        >
+          {optimising ? (
+            <p className="flex items-center gap-2 font-semibold">
+              <Loader2 className="size-3 shrink-0 animate-spin" aria-hidden="true" />
+              {`Optimising photos… ${optimising.done} of ${optimising.total}`}
+            </p>
+          ) : null}
+          {photos.length > 0 ? (
+            <ul className="flex flex-col gap-0.5">
+              {photos.map((photo, index) => (
+                <li key={`${photo.originalName}-${index}`} className="break-all">
+                  {photo.changed
+                    ? `${photo.originalName}: ${formatMegabytes(photo.originalSize)} → ${formatMegabytes(photo.file.size)}`
+                    : `${photo.originalName}: ${formatMegabytes(photo.originalSize)} (unchanged)`}
+                </li>
+              ))}
+            </ul>
+          ) : null}
+          {!optimising && photos.length > 0 ? (
+            <p className="font-semibold" style={{ color: "var(--aw-apply-heading)" }}>
+              {`${photos.length} ${photos.length === 1 ? "photo" : "photos"} ready to upload: ${formatMegabytes(totalBytes)} in total`}
+            </p>
+          ) : null}
+        </div>
       </div>
 
       <div className="flex flex-wrap items-center gap-4">
         <button
           type="submit"
-          disabled={isPending}
+          disabled={busy}
           className="aw-font-heading inline-flex items-center gap-2 bg-[var(--aw-button-bg)] px-9 py-4 text-xs font-bold uppercase tracking-[0.16em] transition-colors hover:bg-[var(--aw-button-hover)] focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[var(--aw-button-bg)] disabled:cursor-not-allowed disabled:opacity-60"
           style={{
             color: "var(--aw-button-fg)",
             borderRadius: "var(--aw-button-radius)",
           }}
         >
-          {isPending ? (
+          {busy ? (
             <>
               <Loader2 className="size-3.5 shrink-0 animate-spin" aria-hidden="true" />
-              Submitting…
+              {uploading
+                ? `Uploading photos… ${uploading.done} of ${uploading.total}`
+                : "Submitting…"}
             </>
           ) : (
             "Submit Application"
