@@ -1,10 +1,27 @@
 import Link from "next/link"
+import { CalendarDays, ClipboardCheck, MapPin } from "lucide-react"
 
 import { Snowfall } from "@/components/snowfall"
 import { FlakeDecor } from "@/components/flake-decor"
 import { HeroCarousel, type HeroSlide } from "@/components/hero-carousel"
 import { AWARDS } from "@/lib/awards"
 import { ACTIVE_THEME, themeVars } from "@/lib/theme"
+
+const KEY_INFO = {
+  awardsNight: "Friday 16th July 2027",
+  location: "QT Hotel, Queenstown, New Zealand",
+  dueDate: "31st of March 2027",
+}
+
+const KEY_INFO_ITEMS = [
+  { icon: CalendarDays, label: "Awards Night", value: KEY_INFO.awardsNight },
+  { icon: MapPin, label: "Awards Night Location", value: KEY_INFO.location },
+  {
+    icon: ClipboardCheck,
+    label: "Applications Now Open",
+    value: `Due date is the ${KEY_INFO.dueDate}`,
+  },
+]
 
 const HERO_SLIDES: HeroSlide[] = [
   {
@@ -116,6 +133,12 @@ export default function Page() {
             Awards Criteria
           </h1>
           <p
+            className="aw-font-heading mt-4 text-sm font-bold uppercase tracking-[0.15em]"
+            style={{ color: "var(--aw-apply-eyebrow)" }}
+          >
+            The cut-off for award applications is the {KEY_INFO.dueDate}
+          </p>
+          <p
             className="mt-5 max-w-2xl text-[0.975rem] leading-relaxed"
             style={{ color: "var(--aw-apply-body)" }}
           >
@@ -134,6 +157,48 @@ export default function Page() {
         ) : null}
 
         <div className="relative mx-auto w-full max-w-[980px] px-6">
+          <section aria-labelledby="key-information-heading" className="mb-14">
+            <h2
+              id="key-information-heading"
+              className="aw-font-heading text-2xl font-extrabold uppercase tracking-tight md:text-3xl"
+              style={{ color: "var(--aw-criteria-title)" }}
+            >
+              2027 Award Entries
+            </h2>
+            <ul className="mt-6 grid gap-4 md:grid-cols-3">
+              {KEY_INFO_ITEMS.map(({ icon: Icon, label, value }) => (
+                <li
+                  key={label}
+                  className="flex h-full flex-col gap-3 border px-6 py-5 backdrop-blur-xl"
+                  style={{
+                    backgroundColor: "var(--aw-criteria-glass)",
+                    borderColor: "var(--aw-criteria-glass-border)",
+                    borderRadius: "var(--aw-radius)",
+                  }}
+                >
+                  <Icon
+                    aria-hidden="true"
+                    className="size-6"
+                    strokeWidth={1.5}
+                    style={{ color: "var(--aw-criteria-eyebrow)" }}
+                  />
+                  <span
+                    className="aw-font-heading text-xs font-bold uppercase tracking-[0.2em]"
+                    style={{ color: "var(--aw-criteria-eyebrow)" }}
+                  >
+                    {label}
+                  </span>
+                  <span
+                    className="text-base font-semibold leading-snug text-pretty"
+                    style={{ color: "var(--aw-criteria-title)" }}
+                  >
+                    {value}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+
           {AWARD_GROUPS.map((group, index) => (
             <section
               key={group.label}
