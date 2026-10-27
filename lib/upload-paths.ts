@@ -17,8 +17,19 @@ export function officeKey(office: string): string {
   return office.trim().toLowerCase().replace(/\s+/g, "-")
 }
 
+/**
+ * A single URL-safe path segment for an office. Kept separate from officeKey()
+ * because officeKey() values are stored in DynamoDB and must not change.
+ */
+export function officeFolder(office: string): string {
+  return officeKey(office)
+    .replace(/[^a-z0-9-]/g, "-")
+    .replace(/-+/g, "-")
+    .replace(/^-+|-+$/g, "")
+}
+
 export function uploadFolder(kind: UploadKind, slug: string, office: string) {
-  return `${kind}/${slug}/${officeKey(office)}/`
+  return `${kind}/${slug}/${officeFolder(office)}/`
 }
 
 /** Keeps blob pathnames to one safe segment regardless of the original name. */
