@@ -14,11 +14,18 @@ import {
   type EntryStatus,
   deleteApplication,
   deleteEntry,
+  deleteRows,
   getApplications,
   getCategoryData,
+  loadAllAwardRows,
   setEntryStatus,
 } from "@/lib/entries"
-import { isApplicationAward, isVotingCategory } from "@/lib/voting"
+import {
+  APPLICATION_AWARDS,
+  VOTING_CATEGORY_SLUGS,
+  isApplicationAward,
+  isVotingCategory,
+} from "@/lib/voting"
 
 export async function login(formData: FormData): Promise<ActionResult> {
   const submitted = String(formData.get("passcode") ?? "")
@@ -136,4 +143,54 @@ export async function removeApplication(
 
   revalidatePath("/admin")
   return { ok: true, message: "Application deleted." }
+}
+
+/**
+ * Wipes every People's Choice entry and vote, every judged-award application,
+ * and all their Blob photos. Intended to clear seed/test data once, before the
+ * real cycle — the typed "DELETE" is re-checked here, not just in the UI.
+ */
+export async function resetAllData(
+  formData: FormData,
+): Promise<ActionResult> {
+  if (!(await isAdmin())) {
+    return { ok: false, error: "Not signed in." }
+  }
+
+  if (String(formData.get("confirm") ?? "") !== "DELETE") {
+    return { ok: false, error: 'Type DELETE to confirm the reset.' }
+  }
+
+  let removedRows = 0
+  let removedPhotos = 0
+
+  try {
+    const { rows, imageUrls } = await loadAllAwardRows({
+      categorySlugs: VOTING_CATEGORY_SLUGS,
+      awardSlugs: APPLICATION_AWARDS.map((award) => award.slug),
+    })
+
+    // Photos first: if Blob fails we stop before dropping the rows that point
+    // at them, so nothing is orphaned and the reset can simply be retried.
+    for (let i = 0; i < imageUrls.length; i += 100) {
+      const batch = imageUrls.slice(i, i + 100)
+      await del(batch)
+      removedPhotos += batch.length
+    }
+
+    removedRows = await deleteRows(rows)
+  } catch (error) {
+    console.log("[v0] Reset failed:", error)
+    return {
+      ok: false,
+      error: `Reset stopped partway (${removedPhotos} photos, ${removedRows} rows removed). Try again to finish.`,
+    }
+  }
+
+  revalidatePath("/admin")
+  revalidatePath("/vote", "layout")
+  return {
+    ok: true,
+    message: `Reset complete. Removed ${removedRows} rows and ${removedPhotos} photos.`,
+  }
 }

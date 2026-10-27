@@ -19,7 +19,7 @@ import {
 import { STATES, getAward } from "@/lib/awards"
 import {
   ENTRIES_OPEN,
-  VOTING_OPEN,
+  BALLOT_OPEN,
   isApplicationAward,
   isVotingCategory,
 } from "@/lib/voting"
@@ -265,7 +265,7 @@ export async function submitVote(
     return { ok: false, error: "Unknown award category." }
   }
 
-  if (!VOTING_OPEN) {
+  if (!BALLOT_OPEN) {
     return { ok: false, error: "Voting is not open for this award." }
   }
 
